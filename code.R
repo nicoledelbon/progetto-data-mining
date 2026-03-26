@@ -1,39 +1,37 @@
 rm(list=ls())
-IMDb <- read_csv("~/progetto-data-mining/IMDbMovies-Clean.csv")
-
-data <- read.csv("C:/Users/HP/Downloads/archive (6)/IMDbMovies-Clean.csv", header=T)
+data <- read.csv("~/progetto-data-mining/IMDbMovies-Clean.csv", header=T)
+data[data==""] <- NA
 sum(is.na(data))
 
-unique(data$Main.Genres)
+sum(is.na(data$Main.Genres)) # 7 missing nei generi --> sapremo trovare il genere?
+genres <- sort(unique(data$Main.Genres))
+genres_filtrati <- genres[nchar(genres) <= 11]
+# filtro i generi con meno di 11 caratteri (che corrispondono ad adventure che è il genere con più caratteri)
 
-sum(data$Main.Genres=="")
+# tutti i generi sarebbero
+# genre = c("Action","Adventure","Animation","Biography","Comedy","Crime",
+#           "Documentary","Drama","Fantasy","Film-Noir","History","Horror","Mystery",
+#           "Music","Musical","Romance","Sci-Fi","Sport","Thriller","War","Western")
 
-idbm <- data[
-  data$Main.Genres == "Action" |
-    data$Main.Genres == "Comedy" |
-    data$Main.Genres == "Documentary" |
-    data$Main.Genres == "Drama" |
-    data$Main.Genres == "Fantasy" |
-    data$Main.Genres == "Film-Noir" |
-    data$Main.Genres == "History" |
-    data$Main.Genres == "Horror" |
-    data$Main.Genres == "Mystery" |
-    data$Main.Genres == "Romance" |
-    data$Main.Genres == "Thriller" |
-    data$Main.Genres == "Western", 
-]
-idbm[idbm==""] <- NA
-sum(is.na(idbm))
+# cosi seleziono solo i generi singoli che appaiono realmente
+unique_genre = c("Action","Adventure","Animation","Biography","Comedy","Crime","Documentary","Drama",
+          "Horror","Music","Musical","Romance","Sci-Fi","Sport","Thriller","War","Western")
+imdb = subset(data, data$Main.Genres %in% unique_genre)
+sum(is.na(imdb))
+table(imdb$Main.Genres)
 
-table(idbm$Main.Genres)
+# music, musical, sport, adventure, animation, war
+# hanno meno di 3 film appartenenti a quel genere 
+# quindi non sarebbero sufficienti per allenare il mio modello
+
+imdb = subset(imdb, !(imdb$Main.Genres %in% c("Music", "Musical", "Sport", 
+                                              "War", "Adventure", "Animation")))
 
 library(tm)
-desc <- idbm$Summary
-docs <- Corpus(VectorSource(desc))
+desc <- imdb$Summary
+sum(is.na(desc))
+docs <- VCorpus(VectorSource(desc)) # così non da errore
 summary(docs)
-
-# tolgo music sport war musical family 
-# crime biography adventure animarion sci fi crime
 
 toSpace <- content_transformer(function(x, pattern) { return (gsub(pattern, " ", x))})
 docs <- tm_map(docs, toSpace, "-")
@@ -41,19 +39,15 @@ docs <- tm_map(docs, toSpace, ":")
 docs <- tm_map(docs, toSpace, "'")
 docs <- tm_map(docs, toSpace, "'")
 docs <- tm_map(docs, toSpace, " -")
-
 docs <- tm_map(docs, removePunctuation)
 docs <- tm_map(docs,content_transformer(tolower))
-# Rimozione dei numeri.
 docs <- tm_map(docs, removeNumbers)
-
-writeLines(as.character(docs[[4]]))
-
 docs <- tm_map(docs, removeWords, stopwords("english"))
 docs <- tm_map(docs, stripWhitespace)
 
+writeLines(as.character(docs[[4]]))
+
 library(SnowballC)
-# Fase di Stemming
 docs <- tm_map(docs,stemDocument)
 
 dtm <- DocumentTermMatrix(docs)
@@ -61,10 +55,27 @@ inspect(dtm[1:2,1000:1005])
 
 freq <- colSums(as.matrix(dtm))
 ord <- order(freq,decreasing=TRUE)
-# Verifichiamo la frequenza di apparizione dei primi termini.
 freq[head(ord)]
+freq[tail(ord)]
 
-findAssocs(dtm,"famili", corlimit = 0.2)
+dtmr <-DocumentTermMatrix(docs, control=list(wordLengths=c(4, 20),
+                                             bounds = list(global = c(30,990))))
+freqr <- colSums(as.matrix(dtmr))
+length(freqr)
+ordr <- order(freqr,decreasing=TRUE)
+findFreqTerms(dtmr,lowfreq=50)
+
+wf=data.frame(term=names(freqr),occurrences=freqr)
+library(ggplot2)
+ggplot(subset(wf, freqr>50), aes(term, occurrences)) + geom_bar(stat="identity") + theme(axis.text.x=element_text(angle=45, hjust=1))
+
+m<-as.matrix(dtmr)
+d <- dist(m)
+groups <- hclust(d,method="ward.D2")
+plot(groups, hang=-1)
+
+
+# -------------------------------------------------------------------------
 
 library(wordcloud)
 wordcloud(names(freq),freq, min.freq=60)
