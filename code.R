@@ -78,6 +78,7 @@ plot(groups, hang=-1)
 
 
 # con tidyverse -----------------------------------------------------------
+
 library(tidyverse)
 library(stringr)
 library(tidytext)
@@ -95,9 +96,12 @@ df = df %>%
 
 df$Main.Genres=as.factor(df$Main.Genres)
 
+my_stop = c("life","boy","girl","family")
+
 bow <- df %>%
   unnest_tokens(word, Summary) %>%
-  anti_join(stop_words)
+  anti_join(stop_words) %>%
+  filter(!word %in% my_stop)
 
 bow %>%
   count(word, sort = TRUE)
@@ -107,9 +111,7 @@ bow %>%
   count(word, sort = TRUE) %>%
   slice_max(n, n=10, with_ties = FALSE)
 
-df %>%
-  unnest_tokens(word, Summary) %>%
-  anti_join(stop_words) %>%
+bow %>%
   group_by(Main.Genres) %>%
   count(word, sort = TRUE) %>%
   slice_max(n ,n=10, with_ties = FALSE) %>%
