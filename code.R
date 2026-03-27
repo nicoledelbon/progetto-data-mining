@@ -21,11 +21,13 @@ sum(is.na(imdb))
 table(imdb$Main.Genres)
 
 # music, musical, sport, adventure, animation, war
-# hanno meno di 3 film appartenenti a quel genere 
+# hanno meno di 5 film appartenenti a quel genere 
 # quindi non sarebbero sufficienti per allenare il mio modello
 
-imdb = subset(imdb, !(imdb$Main.Genres %in% c("Music", "Musical", "Sport", 
-                                              "War", "Adventure", "Animation")))
+imdb = subset(imdb, !(imdb$Main.Genres %in% c("Music", "Musical", "Sport", "Biography",
+                                              "War", "Adventure", "Animation", "Crime","Sci-Fi")))
+imdb$Main.Genres=as.factor(imdb$Main.Genres)
+
 
 library(tm)
 desc <- imdb$Summary
@@ -63,11 +65,11 @@ dtmr <-DocumentTermMatrix(docs, control=list(wordLengths=c(4, 20),
 freqr <- colSums(as.matrix(dtmr))
 length(freqr)
 ordr <- order(freqr,decreasing=TRUE)
-findFreqTerms(dtmr,lowfreq=50)
+findFreqTerms(dtmr,lowfreq=30)
 
 wf=data.frame(term=names(freqr),occurrences=freqr)
 library(ggplot2)
-ggplot(subset(wf, freqr>50), aes(term, occurrences)) + geom_bar(stat="identity") + theme(axis.text.x=element_text(angle=45, hjust=1))
+ggplot(subset(wf, freqr>30), aes(term, occurrences)) + geom_bar(stat="identity") + theme(axis.text.x=element_text(angle=45, hjust=1))
 
 m<-as.matrix(dtmr)
 d <- dist(m)
@@ -75,10 +77,57 @@ groups <- hclust(d,method="ward.D2")
 plot(groups, hang=-1)
 
 
+# con tidyverse -----------------------------------------------------------
+library(tidyverse)
+library(stringr)
+library(tidytext)
+df <- read.csv("IMDbMovies-Clean.csv")
+
+# tiene il primo genere per ogni elenco
+df$Main.Genres <- sapply(strsplit(df$Main.Genres, ","), `[`, 1)
+
+sum(is.na(df$Main.Genres))
+table(df$Main.Genres)
+df = df %>%
+  select(Summary, Main.Genres) %>%
+  filter(!is.na(Main.Genres) & !Main.Genres %in% c("Film-Noir", "History","Music","Musical","Sport","War")) %>%
+  mutate(Summary = tolower(Summary))
+
+df$Main.Genres=as.factor(df$Main.Genres)
+
+bow <- df %>%
+  unnest_tokens(word, Summary) %>%
+  anti_join(stop_words)
+
+bow %>%
+  count(word, sort = TRUE)
+
+bow %>% 
+  group_by(Main.Genres) %>%
+  count(word, sort = TRUE) %>%
+  slice_max(n, n=10, with_ties = FALSE)
+
+df %>%
+  unnest_tokens(word, Summary) %>%
+  anti_join(stop_words) %>%
+  group_by(Main.Genres) %>%
+  count(word, sort = TRUE) %>%
+  slice_max(n ,n=10, with_ties = FALSE) %>%
+  ungroup() %>%
+  mutate(Main.Genres = factor(Main.Genres),
+         text_order = nrow(.):1) %>%
+  ggplot(aes(reorder(word, text_order), n, fill = Main.Genres)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~ Main.Genres, scales = "free_y") +
+  labs(x = "NULL", y = "Frequency") +
+  coord_flip() +
+  theme(legend.position="none")
+
+
 # -------------------------------------------------------------------------
 
 library(wordcloud)
-wordcloud(names(freq),freq, min.freq=60)
+wordcloud(names(freq),freq, min.freq=30)
 
 library(dendextend)
 library(wordcloud)
@@ -87,11 +136,11 @@ library(colorspace)
 m <- as.matrix(dtm)
 d <- dist(m)  # se vuoi puoi usare cosine con proxy::dist(m, method="cosine")
 groups <- hclust(d, method = "ward.D2")
-cluster_cut <- cutree(groups, k = 7)
+cluster_cut <- cutree(groups, k = 11)
 
 # Dendrogramma colorato
 dend <- as.dendrogram(groups)
-dend <- color_branches(dend, k = 7)
+dend <- color_branches(dend, k = 11)
 plot(dend, main = "Dendrogramma colorato per cluster")
 
 # --- Analisi dei cluster ---
@@ -100,7 +149,7 @@ library(wordcloud)
 # Imposta layout 4 righe x 2 colonne (lasciando una cella vuota)
 par(mfrow = c(4, 2), mar = c(1,1,2,1))  # margini leggermente ridotti
 
-for (i in 1:7) {
+for (i in 1:11) {
   # Documenti nel cluster
   cluster_docs <- dtm[cluster_cut == i, ]
   num_docs <- nrow(cluster_docs)
@@ -113,7 +162,7 @@ for (i in 1:7) {
   
   # Wordcloud
   wordcloud(names(cluster_freq), cluster_freq, min.freq = 2,
-            max.words = 100, colors = rainbow(7)[i])
+            max.words = 100, colors = rainbow(11)[i])
   title(main = title_text, line = -1, cex.main = 1)  # aggiunge titolo sopra la wordcloud
 }
 
