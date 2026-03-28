@@ -1,3 +1,5 @@
+# POROVA
+
 rm(list=ls())
 data <- read.csv("~/progetto-data-mining/IMDbMovies-Clean.csv", header=T)
 data[data==""] <- NA
@@ -363,3 +365,5 @@ X_extra <- data.frame(
 )
 
 X <- cbind(X, X_extra)
+
+# ciaooo
