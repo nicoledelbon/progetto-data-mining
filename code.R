@@ -28,7 +28,7 @@ imdb = subset(imdb, !(imdb$Main.Genres %in% c("Music", "Musical", "Sport", "Biog
                                               "War", "Adventure", "Animation", "Crime","Sci-Fi")))
 imdb$Main.Genres=as.factor(imdb$Main.Genres)
 
-
+## analisi di text mining
 library(tm)
 desc <- imdb$Summary
 sum(is.na(desc))
@@ -54,6 +54,7 @@ docs <- tm_map(docs,stemDocument)
 
 dtm <- DocumentTermMatrix(docs)
 inspect(dtm[1:2,1000:1005])
+# matrice molto spara
 
 freq <- colSums(as.matrix(dtm))
 ord <- order(freq,decreasing=TRUE)
@@ -100,7 +101,7 @@ my_stop = c("life","boy","girl","family")
 
 bow <- df %>%
   unnest_tokens(word, Summary) %>%
-  anti_join(stop_words) %>%
+  anti_join(stop_words, by = "word") %>%
   filter(!word %in% my_stop)
 
 bow %>%
@@ -129,10 +130,10 @@ bow %>%
 # -------------------------------------------------------------------------
 
 library(wordcloud)
-wordcloud(names(freq),freq, min.freq=30)
+par(mfrow=c(1,1))
+wordcloud(names(freq),freq, min.freq=30, scale = c(3, 0.5))
 
 library(dendextend)
-library(wordcloud)
 library(colorspace)
 # --- Clustering ---
 m <- as.matrix(dtm)
@@ -148,8 +149,8 @@ plot(dend, main = "Dendrogramma colorato per cluster")
 # --- Analisi dei cluster ---
 library(wordcloud)
 
-# Imposta layout 4 righe x 2 colonne (lasciando una cella vuota)
-par(mfrow = c(4, 2), mar = c(1,1,2,1))  # margini leggermente ridotti
+# Imposta layout 4 righe x 3 colonne (lasciando una cella vuota)
+par(mfrow = c(4, 3), mar = c(1,1,2,1))  # margini leggermente ridotti
 
 for (i in 1:11) {
   # Documenti nel cluster
@@ -164,7 +165,7 @@ for (i in 1:11) {
   
   # Wordcloud
   wordcloud(names(cluster_freq), cluster_freq, min.freq = 2,
-            max.words = 100, colors = rainbow(11)[i])
+            max.words = 100, colors = rainbow(11)[i], scale = c(3, 0.5))
   title(main = title_text, line = -1, cex.main = 1)  # aggiunge titolo sopra la wordcloud
 }
 
