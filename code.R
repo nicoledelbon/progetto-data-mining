@@ -1,5 +1,5 @@
 rm(list=ls())
-data <- read.csv("~/progetto-data-mining/IMDbMovies-Clean.csv", header=T)
+data <- read.csv("IMDbMovies-Clean.csv", header = TRUE)
 data[data==""] <- NA
 sum(is.na(data))
 
