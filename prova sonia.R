@@ -1,7 +1,7 @@
 # POROVA
 
 rm(list=ls())
-data <- read.csv("~/progetto-data-mining/IMDbMovies-Clean.csv", header=T)
+data <- read.csv("IMDbMovies-Clean.csv", header = TRUE)
 data[data==""] <- NA
 sum(is.na(data))
 
@@ -108,6 +108,7 @@ inspect(dtm[1:2,1000:1005])
 freq <- colSums(as.matrix(dtm))
 ord <- order(freq,decreasing=TRUE)
 freq[head(ord)]
+
 freq[tail(ord)]
 
 freq[head(ord, 300)]
@@ -367,3 +368,4 @@ X_extra <- data.frame(
 X <- cbind(X, X_extra)
 
 # ciaooo
+
