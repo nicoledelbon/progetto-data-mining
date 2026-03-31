@@ -67,3 +67,8 @@ acc1=sum(diag(cm1)) / sum(cm1)
 acc2=sum(diag(cm2)) / sum(cm2)
 
 cbind(acc1,acc2)
+
+imp = mice(student, method = "pmm",
+                   predictorMatrix = predmat, seed=1234, printFlag = FALSE)
+student_imp = complete(imp)
+table(student_imp$Ammission)
