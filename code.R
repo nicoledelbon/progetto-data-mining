@@ -14,7 +14,7 @@ student=student[,-c(1,2)]
 # altrimenti non ho nessuna variabile su cui basarmi per imputare le altre
 student=subset(student, !is.na(FinalGrade))
 
-student$Ammission = ifelse(student$FinalGrade > 80, 0, 1)
+student$Ammission = ifelse(student$FinalGrade > median(student$FinalGrade), 0, 1)
 table(student$Ammission)
 
 student=student[,-7]
