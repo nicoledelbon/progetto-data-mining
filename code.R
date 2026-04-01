@@ -91,11 +91,14 @@ my_training3 <- mice(train, method = "norm", predictorMatrix = my_predictorMatri
 my_training4 <- mice(train, method = "cart", predictorMatrix = my_predictorMatrix, seed = 1234, m = 10, maxit = 10, printFlag = FALSE)
 my_training5 <- mice(train, method = "rf", predictorMatrix = my_predictorMatrix, seed = 1234, m = 10, maxit = 10,printFlag = FALSE)
 
+# QUESTO SOPRA è IL MIGLIORE DALLE ACCURACY, HO PROVATO A FARE SELZIONE VARIABILI
+
 train_complete <- complete(my_training5, 1)
 m_null <- glm(Ammission ~ 1, data = train_complete, family = "binomial")
 m_full <- glm(Ammission ~ ., data = train_complete, family = "binomial")
 step_model <- step(m_null, scope = list(lower = m_null, upper = m_full), direction = "forward")
 
+# ANCHE LA CORREKAZIONE NON è COSI GRAVE QUINDI NON SONO MULTICOLLINEARI
 cor(train_complete[, c(2,3,4,5,7,8)])
 
 model1 <- glm.mids(Ammission ~ ., family="binomial", data = my_training1)
