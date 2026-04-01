@@ -1,4 +1,4 @@
-student_dropout_dataset_v3 <- read.csv("C:/Users/HP/Downloads/archive (5)/student_dropout_dataset_v3.csv")
+student_dropout_dataset_v3 <- read.csv("~/progetto-data-mining/student_dropout_dataset_v3.csv")
 data <- student_dropout_dataset_v3[,-1]
 data$Gender <- as.factor(data$Gender)
 data$Internet_Access <- as.factor(data$Internet_Access)
@@ -22,17 +22,15 @@ my_training1 <- mice(train, method = "pmm", predictorMatrix = my_predictorMatrix
 my_training2 <- mice(train, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
 my_training3 <- mice(train, method = "norm", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
 my_training4 <- mice(train, method = "cart", predictorMatrix = my_predictorMatrix, seed = 1234, printFlag = FALSE)
-my_training5 <- mice(train, method = "rf", predictorMatrix = my_predictorMatrix, seed = 1234,maxit = 10,printFlag = FALSE)
 
 
 model1 <- glm.mids(Dropout ~ ., family="binomial", data = my_training1)
 model2 <- glm.mids(Dropout ~ ., family="binomial", data = my_training2)
 model3 <- glm.mids(Dropout ~ ., family="binomial", data = my_training3)
 model4 <- glm.mids(Dropout ~ ., family="binomial", data = my_training4)
-model5 <- glm.mids(Dropout ~ ., family="binomial", data = my_training5)
 
 # Lista dei modelli
-models <- list(model1, model2, model3, model4, model5)
+models <- list(model1, model2, model3, model4)
 
 # Lista per salvare le accuracy
 accuracies <- numeric(length(models))
