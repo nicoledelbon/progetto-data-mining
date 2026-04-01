@@ -274,3 +274,13 @@ calc_class_err(predicted = qda_trn_pred, actual = y_train)
 calc_class_err(predicted = qda_tst_pred, actual = y_test)
 
 table(predicted = qda_tst_pred, actual = y_test)
+
+
+## Logistica
+######################################################################################
+glm_fit <- glm(Dropout ~ . , data=dati, family="binomial")
+glm.probs <- predict(glm_fit, type = "response")
+glm.probs[1:10]
+
+glm_pred <- ifelse(glm.probs>0.5,1,0)
+table(glm_pred, dati$Dropout)
