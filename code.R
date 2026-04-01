@@ -28,7 +28,7 @@ aggr_plot <- aggr(student, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE,
                   ylab=c("Histogram of missing data","Pattern"))
 
 # train-test split --------------------------------------------------------
-
+set.seed(1)
 labels = sample(1:nrow(student), 0.8*nrow(student))
 train = student[labels,]
 test = student[-labels,]
@@ -72,3 +72,61 @@ imp = mice(student, method = "pmm",
                    predictorMatrix = predmat, seed=1234, printFlag = FALSE)
 student_imp = complete(imp)
 table(student_imp$Ammission)
+
+
+
+
+
+# --  ---------------------------------------------------------------------
+
+
+p <- dim(train)[2]
+
+my_predictorMatrix <- 1 - diag(nrow = p, ncol = p)
+my_predictorMatrix[ ,10] <- 0 
+
+my_training1 <- mice(train, method = "pmm", predictorMatrix = my_predictorMatrix, seed = 1234,  m = 10, maxit = 10, printFlag = FALSE)
+my_training2 <- mice(train, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234, m = 10, maxit = 10, printFlag = FALSE)
+my_training3 <- mice(train, method = "norm", predictorMatrix = my_predictorMatrix, seed = 1234, m = 10, maxit = 10, printFlag = FALSE)
+my_training4 <- mice(train, method = "cart", predictorMatrix = my_predictorMatrix, seed = 1234, m = 10, maxit = 10, printFlag = FALSE)
+my_training5 <- mice(train, method = "rf", predictorMatrix = my_predictorMatrix, seed = 1234, m = 10, maxit = 10,printFlag = FALSE)
+
+train_complete <- complete(my_training5, 1)
+m_null <- glm(Ammission ~ 1, data = train_complete, family = "binomial")
+m_full <- glm(Ammission ~ ., data = train_complete, family = "binomial")
+step_model <- step(m_null, scope = list(lower = m_null, upper = m_full), direction = "forward")
+
+cor(train_complete[, c(2,3,4,5,7,8)])
+
+model1 <- glm.mids(Ammission ~ ., family="binomial", data = my_training1)
+model2 <- glm.mids(Ammission ~ ., family="binomial", data = my_training2)
+model3 <- glm.mids(Ammission ~ ., family="binomial", data = my_training3)
+model4 <- glm.mids(Ammission ~ ., family="binomial", data = my_training4)
+model5 <- glm.mids(Ammission ~ ., family="binomial", data = my_training5)
+
+# Lista dei modelli
+models <- list(model1, model2, model3, model4, model5)
+
+# Lista per salvare le accuracy
+accuracies <- numeric(length(models))
+
+for (i in seq_along(models)) {
+  
+  prediction <- lapply(getfit(models[[i]]), predict, 
+                       se.fit = TRUE, newdata = test, type = "response")
+  
+  single_prediction <- sapply(prediction, `[[`, "fit")
+  
+  final_pred <- apply(single_prediction, 1, mean)
+  
+  final_pred_class <- ifelse(final_pred > 0.5, 1, 0)
+  
+  confusion_matrix <- table(test$Ammission, final_pred_class)
+  
+  accuracies[i] <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
+}
+
+# Risultati
+accuracies
+
+
