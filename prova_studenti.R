@@ -25,7 +25,6 @@ data$Scholarship <- as.factor(data$Scholarship)
 table(data$Dropout)  
 # molte più persone continuano
 
-
 # provo con i dati cosi, under e oversampling -----------------------------
 
 # Accuracy alta nei dati originali, ma F1 basso --> unbalanced data
@@ -50,7 +49,6 @@ my_training1 <- mice(train, method = "pmm", predictorMatrix = my_predictorMatrix
 my_training2 <- mice(train, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
 my_training3 <- mice(train, method = "norm", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
 my_training4 <- mice(train, method = "cart", predictorMatrix = my_predictorMatrix, seed = 1234, printFlag = FALSE)
-
 
 model1 <- glm.mids(Dropout ~ ., family="binomial", data = my_training1)
 model2 <- glm.mids(Dropout ~ ., family="binomial", data = my_training2)
@@ -77,9 +75,9 @@ for (i in seq_along(models)) {
 
 # Risultati
 accuracies
-# [1] 0.8232826 0.8227583 0.8232826 0.8232826
+# 0.8227583 0.8227583 0.8232826 0.8232826
 f1
-#  0.5299861 0.5292479 0.5299861 0.5299861
+# 0.5279330 0.5292479 0.5299861 0.5299861
 
 
 # undersampling -----------------------------------------------------------
@@ -137,6 +135,11 @@ accuracies
 f1
 # 0.7547170 0.7547170 0.7538803 0.7538803
 
+# sofia:
+# 0.7319005 0.7341629 0.7330317 0.7330317
+# 0.7432286 0.7453954 0.7440347 0.7440347
+
+
 
 
 # oversampling -----------------------------------------------------------
@@ -189,12 +192,11 @@ for (i in seq_along(models)) {
 
 # Risultati
 accuracies
-# [1] 0.7505643 0.7505643 0.7494357 0.7494357
-# accuracies minori
+# 0.8278215 0.8293963 0.8278215 0.8283465
 f1
-# 0.7601749 0.7612643 0.7599193 0.7595960
+# 0.8934373 0.8943776 0.8934373 0.8937277
 
-
+# --> migliore è mean
 
 # imputazione di tutti i valori con mean e oversampling -------------------
 
@@ -238,15 +240,17 @@ dati_trn <- dati[-lab1,]
 dati_tst <- dati[lab1,]
 dati_trn_no_dropout <- dati[-lab1,-18]
 dati_tst_no_dropout <- dati[lab1,-18]
+x_train = dati_trn[,-18]
+x_test = dati_tst[,-18]
 y_train <- dati_trn[,18]
 y_test <- dati_tst[, 18]
 
 
-## LDA
-######################################################################################
+
+# LDA ---------------------------------------------------------------------
 
 library(MASS)
-mod_lda = lda(Dropout ~ ., data = dati) 
+mod_lda = lda(Dropout ~ ., data = dati_trn) 
 
 plot(mod_lda)
 
@@ -262,25 +266,25 @@ calc_class_err(predicted = lda_tst_pred, actual = y_test)
 table(predicted = lda_tst_pred, actual = y_test)
 
 
-## QDA
-######################################################################################
+# QDA ---------------------------------------------------------------------
 
-mod_qda = qda(Dropout ~ ., data = dati) 
+mod_qda = qda(Dropout ~ ., data = dati_trn) 
 
 qda_trn_pred = predict(mod_qda, dati_trn)$class 
 qda_tst_pred = predict(mod_qda, dati_tst)$class
 
-calc_class_err(predicted = qda_trn_pred, actual = y_train)
-calc_class_err(predicted = qda_tst_pred, actual = y_test)
+calc_class_err(predicted = qda_tst_pred, actual = y_test) # --> migliore?
 
 table(predicted = qda_tst_pred, actual = y_test)
 
 
-## Logistica
-######################################################################################
-glm_fit <- glm(Dropout ~ . , data=dati, family="binomial")
-glm.probs <- predict(glm_fit, type = "response")
+# LOGISTICA ---------------------------------------------------------------
+
+glm_fit <- glm(Dropout ~ . , data=dati_trn, family="binomial")
+glm.probs <- predict(glm_fit, newdata= dati_tst,type = "response")
 glm.probs[1:10]
 
 glm_pred <- ifelse(glm.probs>0.5,1,0)
-table(glm_pred, dati$Dropout)
+table(glm_pred, y_test)
+calc_class_err(predicted = glm_pred, actual = y_test)
+
