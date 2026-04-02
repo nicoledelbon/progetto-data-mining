@@ -273,7 +273,8 @@ mod_qda = qda(Dropout ~ ., data = dati_trn)
 qda_trn_pred = predict(mod_qda, dati_trn)$class 
 qda_tst_pred = predict(mod_qda, dati_tst)$class
 
-calc_class_err(predicted = qda_tst_pred, actual = y_test) # --> migliore?
+calc_class_err(predicted = qda_tst_pred, actual = y_test) 
+
 
 table(predicted = qda_tst_pred, actual = y_test)
 
@@ -288,3 +289,26 @@ glm_pred <- ifelse(glm.probs>0.5,1,0)
 table(glm_pred, y_test)
 calc_class_err(predicted = glm_pred, actual = y_test)
 
+
+# ALBERO ------------------------------------------------------------------
+library(ISLR)
+library("tree")
+dati_trn$Dropout <- as.factor(dati_trn$Dropout)
+
+tree_dati <- tree(Dropout ~ . , data=dati_trn)
+summary(tree_dati)
+plot(tree_dati)
+text(tree_dati)
+tree_dati
+
+tree.pred <- predict(tree_dati , dati_tst , type = "class")
+table(tree.pred , y_test)
+calc_class_err(predicted = tree.pred, actual = y_test)
+
+# confronti ----------------------------------------------------------------
+
+cbind(calc_class_err(predicted = lda_tst_pred, actual = y_test),calc_class_err(predicted = qda_tst_pred, actual = y_test)
+      , calc_class_err(predicted = glm_pred, actual = y_test), calc_class_err(predicted = tree.pred, actual = y_test)
+
+      )
+# logistica migliore ma per poco
