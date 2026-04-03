@@ -1,3 +1,27 @@
+# POSSIBILI CORREZIONI DA VALUTARE
+# CAMBIA LA SOGLIA NEL GLM
+#thresholds <- seq(0.1, 0.9, by = 0.01)
+#f1_scores <- numeric(length(thresholds))
+
+#for (i in seq_along(thresholds)) {
+ # pred <- ifelse(glm.probs > thresholds[i], 1, 0)
+  #cm <- table(y_test, pred)
+#  f1_scores[i] <- f1_score(cm)
+#}
+
+#best_thresh <- thresholds[which.max(f1_scores)]
+#best_thresh
+# glm_pred <- ifelse(glm.probs > best_thresh, 1, 0)
+
+# PROVA RANDOM FOREST
+#library(randomForest)
+#rf_model <- randomForest(Dropout ~ ., data=dati_trn, ntree=200)
+#rf_pred <- predict(rf_model, dati_tst)
+#table(rf_pred, y_test)
+#calc_class_err(rf_pred, y_test)
+
+
+
 rm(list=ls())
 
 f1_score <- function(cm) {
