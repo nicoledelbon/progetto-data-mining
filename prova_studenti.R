@@ -39,10 +39,10 @@ f1_score <- function(cm) {
 student_dropout_dataset_v3 <- read.csv("~/progetto-data-mining/student_dropout_dataset_v3.csv")
 
 # Obiettivo della mia analisi
-# La nostra analisi ha lo scopo di prevedere se uno studente abbandona il suo ciclo di studi prima di terminarlo.
+# La nostra analisi ha lo scopo di prevedere se uno studente abbandona il ciclo di studi prima di terminarlo.
 # Al fine di prevedere l'abbandono, abbiamo analizzato un dataset contenente diverse informazioni,
-# sia sui dati personali dello studente, sulla sua educazione e studi precedenti, ma anche sulla famiglia
-# e dove vive lo studente e le possibilità che ha a disposizione ( es: accesso a Internet)
+# sui dati personali dello studente e sulla sua educazione, ma anche sulla famiglia
+# e le possibilità che ha a disposizione ( es: accesso a Internet)
 
 summary(student_dropout_dataset_v3)
 # summary per capire le variabili in esame
@@ -50,7 +50,6 @@ summary(student_dropout_dataset_v3)
 # Study_Hours_per_Day, Stress_index
 # I range di variazione delle variabili sono coerenti con le variabili
 # in esame
-
 
 data <- student_dropout_dataset_v3[,-1]
 data$Gender <- as.factor(data$Gender)
@@ -60,23 +59,21 @@ data$Department <- as.factor(data$Department)
 data$Parental_Education <- as.factor(data$Parental_Education)
 data$Part_Time_Job <- as.factor(data$Part_Time_Job)
 data$Scholarship <- as.factor(data$Scholarship)
-data$Dropout <- as.factor(data$Dropout )
-data$Assignment_Delay_Days <- as.factor(data$Assignment_Delay_Days)
+data$Dropout <- as.factor(data$Dropout)
 
 # La variabile ID non è utile alle mie analisi, la rimuovo
 summary(data)
 # Ho delle variabili numeriche e delle variabili dummy
 
-
 # analisi grafica ---------------------------------------------------------
 colnames(data)
-data_numeric <- data[, c("Age","Family_Income"  , "Study_Hours_per_Day" ,"Attendance_Rate"    
-                         , "Travel_Time_Minutes" ,"Stress_Index" , "GPA"                  
-                        ,"Semester_GPA" ,"CGPA", "Dropout")]
+data_numeric <- data[, c("Age","Family_Income", "Study_Hours_per_Day" ,"Attendance_Rate",
+                         "Travel_Time_Minutes" ,"Stress_Index" , "GPA","Semester_GPA" ,"CGPA", "Dropout")]
 par(mfrow=c(3,3))
 for(i in 1:(ncol(data_numeric)-1)){
   plot(data_numeric[,i], col=data$Dropout, ylab=colnames(data_numeric)[i],
-       main="")
+       main="", pch=16)
+  legend("left", levels(data$Dropout), col=c("black","red"), pch=16)
 }
 par(mfrow=c(1,1))
 
@@ -92,17 +89,14 @@ vis_miss(data)
 gg_miss_var(data)
 # 500 osservazioni contengono missing in 3 variabili 
 # le altre variabili non ne contengono 
-# (potrebbe essere che queste variabili non erano obbligatorie nella compilazione
-# del questionario)
-
+# (potrebbe essere che queste variabili non erano 
+# obbligatorie nella compilazione del questionario)
 
 #library("UpSetR")
 #upset(as_shadow_upset(data))
 
 library(mice)
 md.pattern(data)
-
-
 
 table(data$Dropout)  
 # Dai dati originali, vedo che molti studenti completano i loro studi, mentre chi abbandona è
@@ -121,12 +115,10 @@ table(data$Dropout)
 
 # come imputazioni sono all'incirca simili, il mean semvra essere il migliore
 
-
 set.seed(1)
 labels = sample(1:nrow(data), 0.8*nrow(data))
 train = data[labels,]
 test = data[-labels,]
-
 
 p <- dim(train)[2]
 
@@ -171,9 +163,10 @@ f1
 
 # undersampling -----------------------------------------------------------
 
-lab <- sample(1:7646, 2354)
 data0 <- data[data$Dropout==0,]
-data <- rbind(data0[lab,], data[data$Dropout==1,])
+data1 <- data[data$Dropout==1,]
+lab <- sample(1:nrow(data0), nrow(data1))
+data <- rbind(data0[lab,], data1)
 
 table(data$Dropout)
 
@@ -181,7 +174,6 @@ set.seed(1)
 labels = sample(1:nrow(data), 0.8*nrow(data))
 train = data[labels,]
 test = data[-labels,]
-
 
 p <- dim(train)[2]
 
@@ -193,7 +185,6 @@ my_training1 <- mice(train, method = "pmm", predictorMatrix = my_predictorMatrix
 my_training2 <- mice(train, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
 my_training3 <- mice(train, method = "norm", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
 my_training4 <- mice(train, method = "cart", predictorMatrix = my_predictorMatrix, seed = 1234, printFlag = FALSE)
-
 
 model1 <- glm.mids(Dropout ~ ., family="binomial", data = my_training1)
 model2 <- glm.mids(Dropout ~ ., family="binomial", data = my_training2)
@@ -219,7 +210,7 @@ for (i in seq_along(models)) {
 
 # Risultati
 accuracies
-# [1] 0.7505643 0.7505643 0.7494357 0.7494357
+# 0.7505643 0.7505643 0.7494357 0.7494357
 # accuracies minori
 f1
 # 0.7547170 0.7547170 0.7538803 0.7538803
@@ -233,17 +224,14 @@ f1
 
 # oversampling -----------------------------------------------------------
 
-lab <- sample(1:2354, 7646, replace=T)
-data1 <- data[data$Dropout==1,]
-data <- rbind(data1[lab,], data[data$Dropout==0,])
-
+lab <- sample(1:nrow(data1), nrow(data0), replace=T)
+data <- rbind(data1[lab,], data0)
 table(data$Dropout)
 
 set.seed(1)
 labels = sample(1:nrow(data), 0.8*nrow(data))
 train = data[labels,]
 test = data[-labels,]
-
 
 p <- dim(train)[2]
 
@@ -255,7 +243,6 @@ my_training1 <- mice(train, method = "pmm", predictorMatrix = my_predictorMatrix
 my_training2 <- mice(train, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
 my_training3 <- mice(train, method = "norm", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
 my_training4 <- mice(train, method = "cart", predictorMatrix = my_predictorMatrix, seed = 1234, printFlag = FALSE)
-
 
 model1 <- glm.mids(Dropout ~ ., family="binomial", data = my_training1)
 model2 <- glm.mids(Dropout ~ ., family="binomial", data = my_training2)
@@ -296,15 +283,13 @@ f1
 
 # - -----------------------------------------------------------------------
 
-
-
 # --> migliore è mean
 
 # imputazione di tutti i valori con mean e oversampling -------------------
 
 rm(list=ls())
 student_dropout_dataset_v3 <- read.csv("~/progetto-data-mining/student_dropout_dataset_v3.csv")
-data <- student_dropout_dataset_v3[,-1] # rimuovo nome
+data <- student_dropout_dataset_v3[,-1] # rimuovo ID
 data$Gender <- as.factor(data$Gender)
 data$Internet_Access <- as.factor(data$Internet_Access)
 data$Semester <- as.factor(data$Semester)
@@ -313,12 +298,13 @@ data$Parental_Education <- as.factor(data$Parental_Education)
 data$Part_Time_Job <- as.factor(data$Part_Time_Job)
 data$Scholarship <- as.factor(data$Scholarship)
 data$Dropout <- as.factor(data$Dropout )
-data$Assignment_Delay_Days <- as.factor(data$Assignment_Delay_Days)
 
 
-lab <- sample(1:2354, 7646, replace=T)
+data0 <- data[data$Dropout==0,]
 data1 <- data[data$Dropout==1,]
-data <- rbind(data1[lab,], data[data$Dropout==0,])
+lab <- sample(1:nrow(data1), nrow(data0), replace=T)
+
+data <- rbind(data1[lab,], data0)
 
 table(data$Dropout)
 
@@ -329,7 +315,7 @@ my_predictorMatrix[ ,18] <- 0
 
 library(mice)
 data_imp <- mice(data, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
-
+data_imp$loggedEvents
 
 densityplot(data_imp)
 
@@ -342,14 +328,13 @@ densityplot(data_imp)
 
 # selezione variabili se necessaria ---------------------------------------
 dati <- complete(data_imp, 1)
-dati_numeric <- dati[, c("Age","Family_Income"  , "Study_Hours_per_Day" ,"Attendance_Rate" ,     
-                          "Travel_Time_Minutes" ,"Stress_Index" , "GPA"                  
-                         ,"Semester_GPA" ,"CGPA", "Dropout")]
+dati_numeric <- dati[, c("Age", "Family_Income", "Study_Hours_per_Day", "Attendance_Rate", "Assignment_Delay_Days",
+                          "Travel_Time_Minutes", "Stress_Index", "GPA", "Semester_GPA", "CGPA", "Dropout")]
 
-cor(dati_numeric[,-10])
+cor = cor(dati_numeric[,-11])
 library(ggcorrplot)
-ggcorrplot(dati_numeric[,-10])
-# NON SO CHE PROBLEMI ABBIA
+ggcorrplot(cor, lab=T, hc.order=T)
+# NON SO CHE PROBLEMI ABBIA --> va fatto sulla correlazione
 
 # Le variabili Semester GPA, CGPA e GPA sono collineari
 # infatti sono tutti indicatori della media dei voti. 
@@ -361,6 +346,10 @@ ggcorrplot(dati_numeric[,-10])
 
 # QUA IL MDELLO LE TIWNE TUTTE, FACCIAMO NOI UNA SELEZIONE?
 # PRENDIAMO MEDIA CGPA CHE PENSO SIA TITPO TOTALE?
+# --> io lo farei comunque prima di imputare i dati per risolvere logged events
+# ho trovato che GPA è calcolato sull'anno, CGPA è quello cumulato di tutti gli anni,
+# semester GPA è quello calcolato nel semestre corrente
+# quindi io terrei CGPA
 
 mnull <- glm(dati$Dropout ~ 1, data=dati, family="binomial")
 mfull <- glm(dati$Dropout ~ ., data=dati, family="binomial")
@@ -406,7 +395,6 @@ mod_lda = lda(Dropout ~ ., data = dati_trn)
 
 plot(mod_lda)
 
-lda_trn_pred = predict(mod_lda, dati_trn)$class 
 lda_tst_pred = predict(mod_lda, dati_tst)$class
 
 calc_class_err = function(actual, predicted) { 
@@ -426,7 +414,6 @@ qda_trn_pred = predict(mod_qda, dati_trn)$class
 qda_tst_pred = predict(mod_qda, dati_tst)$class
 
 calc_class_err(predicted = qda_tst_pred, actual = y_test) 
-
 
 table(predicted = qda_tst_pred, actual = y_test)
 
@@ -463,4 +450,5 @@ cbind(calc_class_err(predicted = lda_tst_pred, actual = y_test),calc_class_err(p
       , calc_class_err(predicted = glm_pred, actual = y_test), calc_class_err(predicted = tree.pred, actual = y_test)
 
       )
-# logistica migliore ma per poco
+# logistica migliore ma per poco --> a me viene qda (2°)
+
