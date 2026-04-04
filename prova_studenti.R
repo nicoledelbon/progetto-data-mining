@@ -1,26 +1,3 @@
-# POSSIBILI CORREZIONI DA VALUTARE
-# CAMBIA LA SOGLIA NEL GLM
-#thresholds <- seq(0.1, 0.9, by = 0.01)
-#f1_scores <- numeric(length(thresholds))
-
-#for (i in seq_along(thresholds)) {
- # pred <- ifelse(glm.probs > thresholds[i], 1, 0)
-  #cm <- table(y_test, pred)
-#  f1_scores[i] <- f1_score(cm)
-#}
-
-#best_thresh <- thresholds[which.max(f1_scores)]
-#best_thresh
-# glm_pred <- ifelse(glm.probs > best_thresh, 1, 0)
-
-# PROVA RANDOM FOREST
-#library(randomForest)
-#rf_model <- randomForest(Dropout ~ ., data=dati_trn, ntree=200)
-#rf_pred <- predict(rf_model, dati_tst)
-#table(rf_pred, y_test)
-#calc_class_err(rf_pred, y_test)
-
-
 
 rm(list=ls())
 
@@ -163,6 +140,7 @@ f1
 
 data0 <- data[data$Dropout==0,]
 data1 <- data[data$Dropout==1,]
+set.seed(1)
 lab <- sample(1:nrow(data0), nrow(data1))
 data <- rbind(data0[lab,], data1)
 
@@ -220,6 +198,7 @@ f1
 
 # oversampling -----------------------------------------------------------
 
+set.seed(1)
 lab <- sample(1:nrow(data1), nrow(data0), replace=T)
 data <- rbind(data1[lab,], data0)
 table(data$Dropout)
@@ -295,25 +274,17 @@ metrics <- function(cm) {
   recall <- TP / (TP + FN)
   specificity <- TN / (TN + FP)
   accuracy <- (TP + TN) / sum(cm)
+  f1 <- 2 * precision * recall / (precision + recall)
   
   return(list(
     Precision = precision,
     Recall = recall,
     Specificity = specificity,
-    Accuracy = accuracy
+    Accuracy = accuracy,
+    F1_score = f1
   ))
 }
-f1_score <- function(cm) {
-  TP <- cm[2,2]
-  FP <- cm[1,2]
-  FN <- cm[2,1]
-  
-  precision <- TP / (TP + FP)
-  recall <- TP / (TP + FN)
-  
-  f1 <- 2 * precision * recall / (precision + recall)
-  return(f1)
-}
+
 student_dropout_dataset_v3 <- read.csv("student_dropout_dataset_v3.csv")
 
 data <- student_dropout_dataset_v3[,-1] # rimuovo ID
@@ -326,9 +297,9 @@ data$Part_Time_Job <- as.factor(data$Part_Time_Job)
 data$Scholarship <- as.factor(data$Scholarship)
 data$Dropout <- as.factor(data$Dropout )
 
-
 data0 <- data[data$Dropout==0,]
 data1 <- data[data$Dropout==1,]
+set.seed(1)
 lab <- sample(1:nrow(data1), nrow(data0), replace=T)
 
 data <- rbind(data1[lab,], data0)
@@ -345,13 +316,7 @@ data_imp <- mice(data, method = "mean", predictorMatrix = my_predictorMatrix, se
 data_imp$loggedEvents
 
 densityplot(data_imp)
-
-# pooling
-#modelFit <- with(data_imp,lm(Dropout~ .))
-#summary(pool(modelFit))
-
-
-
+# --> family income?
 
 # selezione variabili se necessaria ---------------------------------------
 dati <- complete(data_imp, 1)
@@ -366,20 +331,10 @@ ggcorrplot(cor, lab=T, hc.order=T)
 # infatti sono tutti indicatori della media dei voti. 
 # applico una selezione della variabili
 
-
-
-# raga HELP --------------------------------------------------------------------
-
-# QUA IL MDELLO LE TIWNE TUTTE, FACCIAMO NOI UNA SELEZIONE?
-# PRENDIAMO MEDIA CGPA CHE PENSO SIA TITPO TOTALE?
 # --> io lo farei comunque prima di imputare i dati per risolvere logged events
 # ho trovato che GPA è calcolato sull'anno, CGPA è quello cumulato di tutti gli anni,
 # semester GPA è quello calcolato nel semestre corrente
 # quindi io terrei CGPA
-
-mnull <- glm(dati$Dropout ~ 1, data=dati, family="binomial")
-mfull <- glm(dati$Dropout ~ ., data=dati, family="binomial")
-step(mfull, mnull, direction="both")
 
 
 # Tengo solo un valore per la media, al fine di evitare dati ridondandi
@@ -394,7 +349,7 @@ dati <- dati[, !(names(dati) %in% c("Semester_GPA", "GPA"))]
 # Decido di selezionare il primo set di dati ottenuto dalla prima imputazione (?).
 # Divido i dati nuovamente in test e train, e valuto il miglior modello di classificazione.
 
-
+set.seed(1)
 lab1 <- sample(1:nrow(dati), 0.2*nrow(dati))
 dati_trn <- dati[-lab1,]
 dati_tst <- dati[lab1,]
@@ -415,7 +370,6 @@ ggpairs(dati_trn_num[,-8], aes(color = as.factor(dati_trn_num$Dropout)))
 # LDA sia il miglior metodo
 
 # LDA ---------------------------------------------------------------------
-table(dati_trn)
 
 library(MASS)
 mod_lda = lda(Dropout ~ ., data = dati_trn) 
@@ -430,12 +384,11 @@ calc_class_err = function(actual, predicted) {
 
 
 calc_class_err(predicted = lda_tst_pred, actual = y_test)
-
+# 0.263898
 table(predicted = lda_tst_pred, actual = y_test)
 
 
 lda_tab <- table(predicted = lda_tst_pred, actual = y_test)
-f1_lda <- f1_score(lda_tab)
 m.lda <- metrics(lda_tab)
 
 
@@ -443,17 +396,12 @@ m.lda <- metrics(lda_tab)
 
 mod_qda = qda(Dropout ~ ., data = dati_trn) 
 
-qda_trn_pred = predict(mod_qda, dati_trn)$class 
 qda_tst_pred = predict(mod_qda, dati_tst)$class
 
 calc_class_err(predicted = qda_tst_pred, actual = y_test) 
-
-
-table(predicted = qda_tst_pred, actual = y_test)
-
+# 0.2609549
 
 qda_tab <- table(predicted = qda_tst_pred, actual = y_test)
-f1_qda <- f1_score(qda_tab)
 m.qda <- metrics(qda_tab)
 
 
@@ -461,41 +409,33 @@ m.qda <- metrics(qda_tab)
 
 glm_fit <- glm(Dropout ~ . , data=dati_trn, family="binomial")
 glm.probs <- predict(glm_fit, newdata= dati_tst,type = "response")
-glm.probs[1:10]
 
 glm_pred <- ifelse(glm.probs>0.5,1,0)
 
-table(glm_pred, y_test)
 calc_class_err(predicted = glm_pred, actual = y_test)
-
-
-
+# 0.2661871
 glm_tab <- table(glm_pred, y_test)
 calc_class_err(predicted = glm_pred, actual = y_test)
-f1_glm <- f1_score(glm_tab)
 m.glm <- metrics(glm_tab)
+
 # OTTIMIZZAZIONE SOGLIA-------
 
-thresholds <- seq(0.1, 0.9, by = 0.01)
-f1_scores <- numeric(length(thresholds))
+soglia <- seq(0.1, 0.9, by = 0.01)
+f1_scores <- numeric(length(soglia))
 
-for (i in seq_along(thresholds)) {
-  pred <- ifelse(glm.probs > thresholds[i], 1, 0)
+for (i in seq_along(soglia)) {
+  pred <- ifelse(glm.probs > soglia[i], 1, 0)
   cm <- table(y_test, pred)
   f1_scores[i] <- f1_score(cm)
 }
 
-best_thresh <- thresholds[which.max(f1_scores)]
-best_thresh
-glm_pred_opt <- ifelse(glm.probs > best_thresh, 1, 0)
+soglia_opt <- soglia[which.max(f1_scores)]
+glm_pred_opt <- ifelse(glm.probs > soglia_opt, 1, 0)
 
-# confronto
 table(glm_pred_opt, y_test)
 calc_class_err(predicted = glm_pred_opt, actual = y_test)
-
-# F1 finale
+# 0.2753434
 opt_tab <- table(y_test, glm_pred_opt)
-f1_opt <- f1_score(opt_tab)
 m.opt <- metrics(opt_tab)
 
 # ALBERO ------------------------------------------------------------------
@@ -511,39 +451,17 @@ tree_dati
 
 tree.pred <- predict(tree_dati , dati_tst , type = "class")
 
-table(tree.pred , y_test)
+tree_tab = table(tree.pred , y_test)
+m.tree=metrics(tree_tab)
 calc_class_err(predicted = tree.pred, actual = y_test)
+# 0.2786135
 
 # confronti ----------------------------------------------------------------
 
-cbind(calc_class_err(predicted = lda_tst_pred, actual = y_test),calc_class_err(predicted = qda_tst_pred, actual = y_test)
-      , calc_class_err(predicted = glm_pred, actual = y_test), calc_class_err(predicted = tree.pred, actual = y_test)
-
-      )
-# logistica migliore ma per poco --> a me viene qda (2°)
-
-tree_tab <- table(tree.pred , y_test)
-calc_class_err(predicted = tree.pred, actual = y_test)
-f1_tree <- f1_score(tree_tab)
-m.tree <- metrics(tree_tab)
-# confronti ----------------------------------------------------------------
-
-cbind(calc_class_err(predicted = lda_tst_pred, actual = y_test),calc_class_err(predicted = qda_tst_pred, actual = y_test)
-      , calc_class_err(predicted = glm_pred, actual = y_test), calc_class_err(predicted = tree.pred, actual = y_test), 
-      calc_class_err(predicted =glm_pred_opt, actual = y_test)
-      )
-# logistica migliore ma per poco --> a me viene qda (2°)
-## tramite error test a me (NICOLE) viene primo qda
-
-cbind(f1_lda, f1_qda, f1_glm, f1_opt, f1_tree)
-
-tab <- cbind(
-  Error = c(calc_class_err(predicted = lda_tst_pred, actual = y_test),calc_class_err(predicted = qda_tst_pred, actual = y_test)
-            , calc_class_err(predicted = glm_pred, actual = y_test), calc_class_err(predicted = tree.pred, actual = y_test), 
-            calc_class_err(predicted =glm_pred_opt, actual = y_test)
-  ),
-  F1 = c(f1_lda, f1_qda, f1_glm, f1_opt, f1_tree)
-)
+tab <- cbind(Error = c(calc_class_err(lda_tst_pred, y_test), calc_class_err(qda_tst_pred, y_test), 
+      calc_class_err(glm_pred, y_test), calc_class_err(glm_pred_opt, y_test),
+      calc_class_err(tree.pred, y_test)))
+# qda migliore
 
 met <- rbind(m.lda, m.qda, m.glm, m.opt, m.tree)
 
