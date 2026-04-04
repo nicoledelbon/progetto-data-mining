@@ -38,8 +38,6 @@ f1_score <- function(cm) {
 
 student_dropout_dataset_v3 <- read.csv("~/progetto-data-mining/student_dropout_dataset_v3.csv")
 
-student_dropout_dataset_v3 <- read.csv("student_dropout_dataset_v3.csv")
-
 # Obiettivo della mia analisi
 # La nostra analisi ha lo scopo di prevedere se uno studente abbandona il ciclo di studi prima di terminarlo.
 # Al fine di prevedere l'abbandono, abbiamo analizzato un dataset contenente diverse informazioni,
@@ -131,15 +129,13 @@ library(mice)
 my_training1 <- mice(train, method = "pmm", predictorMatrix = my_predictorMatrix, seed = 1234, printFlag = FALSE)
 my_training2 <- mice(train, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
 my_training3 <- mice(train, method = "norm", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
-my_training4 <- mice(train, method = "cart", predictorMatrix = my_predictorMatrix, seed = 1234, printFlag = FALSE)
 
 model1 <- glm.mids(Dropout ~ ., family="binomial", data = my_training1)
 model2 <- glm.mids(Dropout ~ ., family="binomial", data = my_training2)
 model3 <- glm.mids(Dropout ~ ., family="binomial", data = my_training3)
-model4 <- glm.mids(Dropout ~ ., family="binomial", data = my_training4)
 
 # Lista dei modelli
-models <- list(model1, model2, model3, model4)
+models <- list(model1, model2, model3)
 
 # Lista per salvare le accuracy
 accuracies <- numeric(length(models))
@@ -158,9 +154,9 @@ for (i in seq_along(models)) {
 
 # Risultati
 accuracies
-# 0.8227583 0.8227583 0.8232826 0.8232826
+# 0.8227583 0.8227583 0.8232826
 f1
-# 0.5279330 0.5292479 0.5299861 0.5299861
+# 0.5279330 0.5292479 0.5299861
 
 
 # undersampling -----------------------------------------------------------
@@ -186,15 +182,13 @@ library(mice)
 my_training1 <- mice(train, method = "pmm", predictorMatrix = my_predictorMatrix, seed = 1234, printFlag = FALSE)
 my_training2 <- mice(train, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
 my_training3 <- mice(train, method = "norm", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
-my_training4 <- mice(train, method = "cart", predictorMatrix = my_predictorMatrix, seed = 1234, printFlag = FALSE)
 
 model1 <- glm.mids(Dropout ~ ., family="binomial", data = my_training1)
 model2 <- glm.mids(Dropout ~ ., family="binomial", data = my_training2)
 model3 <- glm.mids(Dropout ~ ., family="binomial", data = my_training3)
-model4 <- glm.mids(Dropout ~ ., family="binomial", data = my_training4)
 
 # Lista dei modelli
-models <- list(model1, model2, model3, model4)
+models <- list(model1, model2, model3)
 
 # Lista per salvare le accuracy
 accuracies <- numeric(length(models))
@@ -244,15 +238,13 @@ library(mice)
 my_training1 <- mice(train, method = "pmm", predictorMatrix = my_predictorMatrix, seed = 1234, printFlag = FALSE)
 my_training2 <- mice(train, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
 my_training3 <- mice(train, method = "norm", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
-my_training4 <- mice(train, method = "cart", predictorMatrix = my_predictorMatrix, seed = 1234, printFlag = FALSE)
 
 model1 <- glm.mids(Dropout ~ ., family="binomial", data = my_training1)
 model2 <- glm.mids(Dropout ~ ., family="binomial", data = my_training2)
 model3 <- glm.mids(Dropout ~ ., family="binomial", data = my_training3)
-model4 <- glm.mids(Dropout ~ ., family="binomial", data = my_training4)
 
 # Lista dei modelli
-models <- list(model1, model2, model3, model4)
+models <- list(model1, model2, model3)
 
 # Lista per salvare le accuracy
 accuracies <- numeric(length(models))
@@ -369,7 +361,6 @@ dati_numeric <- dati[, c("Age", "Family_Income", "Study_Hours_per_Day", "Attenda
 cor = cor(dati_numeric[,-11])
 library(ggcorrplot)
 ggcorrplot(cor, lab=T, hc.order=T)
-# NON SO CHE PROBLEMI ABBIA --> va fatto sulla correlazione
 
 # Le variabili Semester GPA, CGPA e GPA sono collineari
 # infatti sono tutti indicatori della media dei voti. 
