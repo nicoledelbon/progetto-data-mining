@@ -1,13 +1,14 @@
 rm(list=ls())
 library(readr)
-student <- read_csv("~/progetto-data-mining/student_performance_updated_1000.csv")
+student <- read_csv("student_performance_updated_1000.csv")
 student$Gender = as.factor(student$Gender)
 student$ParentalSupport = as.factor(student$ParentalSupport)
 student$`Online Classes Taken` = as.factor(student$`Online Classes Taken`)
 colSums(is.na(student))
 colnames(is.na(student))
 
-# tolgo l'id e il nome perchè non servono 
+
+# tolgo l'id e il nome perchè non sono utili per le analisi 
 student=student[,-c(1,2)]
 
 # tengo solo le osservazioni che hanno un valore per final grade
@@ -16,8 +17,17 @@ student=subset(student, !is.na(FinalGrade))
 
 student$Ammission = ifelse(student$FinalGrade > median(student$FinalGrade), 0, 1)
 table(student$Ammission)
+# le classi sono abbastanza bilanciate
 
-student=student[,-7]
+student=student[,-7] # elimino Final Grafe
+
+library(visdat)
+library(naniar)
+vis_dat(student) # visualizzazione nei dati
+vis_miss(student) # il 3.2% dei dati è mancante
+
+library(UpSetR)
+upset(as_shadow_upset(student)) # pochi sono i casi in cui ci sono collegamento tra i valori mancanti; non sono fortemente clusterizzati; qquindi posso gestire i NA variabile per variabile
 
 library(mice)
 md.pattern(student)
@@ -28,25 +38,34 @@ aggr_plot <- aggr(student, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE,
                   ylab=c("Histogram of missing data","Pattern"))
 
 # train-test split --------------------------------------------------------
+
 set.seed(1)
+
+set.seed(1234)
+
 labels = sample(1:nrow(student), 0.8*nrow(student))
 train = student[labels,]
 test = student[-labels,]
+
+miss_var_table(train) # numero di valori mancanti per ciascuno dei casi
 
 # missing imputation ------------------------------------------------------
 
 library(mice)
 p = dim(train)[2]
 predmat = 1 - diag(nrow=p,ncol=p)
-predmat[,10]=0
+# predmat[,10]=0
 
+table(train$Gender)
+sum(is.na(train$Gender))
 my_train1 = mice(train, method = "pmm",
                     predictorMatrix = predmat, seed=1234, printFlag = FALSE)
 my_train2 = mice(train, method = "cart",
                     predictorMatrix = predmat, seed=1234, printFlag = FALSE)
 
-fit1=glm.mids(Ammission~., family = "binomial", data=my_train1)
-fit2=glm.mids(Ammission~., family = "binomial", data=my_train2)
+# modelli logistici su dati imputati
+fit1 = with(my_train1, glm(Ammission ~ ., family = "binomial"))
+fit2=with(my_train2, glm(Admision ~., family = "binomial"))
 
 pred1 = lapply(getfit(fit1), predict, se.fit=T, newdata=test, type="response")
 pred2 = lapply(getfit(fit2), predict, se.fit=T, newdata=test, type="response")
@@ -72,9 +91,6 @@ imp = mice(student, method = "pmm",
                    predictorMatrix = predmat, seed=1234, printFlag = FALSE)
 student_imp = complete(imp)
 table(student_imp$Ammission)
-
-
-
 
 
 # --  ---------------------------------------------------------------------
@@ -132,4 +148,49 @@ for (i in seq_along(models)) {
 # Risultati
 accuracies
 
+
+### altra versione
+predmat = make.predictorMatrix(train)
+predmat[, "Ammission"]=0
+# metodi corretti, per imputare correttamente le variabili factor
+meth = make.method(train)
+meth["Gender"] = "logreg"
+meth["ParentalSupport"] = "polyreg"
+meth["Online Classes Taken"] = "logreg"
+
+# imputazione train
+imp_train = mice(train,
+                 method = meth,
+                 predictorMatrix = predmat,
+                 seed = 1234,
+                 printFlag = FALSE)
+
+train_list = complete(imp_train, "all")
+# modelli logistici
+models = lapply(train_list, function(d) {
+  lm(Ammission ~ ., data = d, family = "binomial")
+})
+# Imputazione TEST (FONDAMENTALE)
+str(train)
+str(test)
+imp_test = mice.mids(imp_train, newdata = test)
+test_list = complete(imp_test, "all")
+# Predizioni corrette
+pred = lapply(1:length(test_list), function(i) {
+  predict(models[[i]], newdata = test_list[[i]], type = "response")
+})
+
+pred_matrix = do.call(cbind, pred)
+final_pred = rowMeans(pred_matrix)
+# Classificazione
+final_pred_class = ifelse(final_pred > 0.5, 1, 0)
+# Confusion matrix + accuracy
+cm = table(test$Ammission, final_pred_class)
+acc = sum(diag(cm)) / sum(cm)
+
+cm
+acc
+# il modello è bilanciato verso la classe 1 e sbaglia tanti 0
+
+## probabilmente la logististica è troppo semplice
 
