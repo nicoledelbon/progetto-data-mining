@@ -38,6 +38,8 @@ f1_score <- function(cm) {
 
 student_dropout_dataset_v3 <- read.csv("~/progetto-data-mining/student_dropout_dataset_v3.csv")
 
+student_dropout_dataset_v3 <- read.csv("student_dropout_dataset_v3.csv")
+
 # Obiettivo della mia analisi
 # La nostra analisi ha lo scopo di prevedere se uno studente abbandona il ciclo di studi prima di terminarlo.
 # Al fine di prevedere l'abbandono, abbiamo analizzato un dataset contenente diverse informazioni,
@@ -288,7 +290,40 @@ f1
 # imputazione di tutti i valori con mean e oversampling -------------------
 
 rm(list=ls())
+
 student_dropout_dataset_v3 <- read.csv("~/progetto-data-mining/student_dropout_dataset_v3.csv")
+
+metrics <- function(cm) {
+  TP <- cm[2,2]
+  FP <- cm[1,2]
+  FN <- cm[2,1]
+  TN <- cm[1,1]
+  
+  precision <- TP / (TP + FP)
+  recall <- TP / (TP + FN)
+  specificity <- TN / (TN + FP)
+  accuracy <- (TP + TN) / sum(cm)
+  
+  return(list(
+    Precision = precision,
+    Recall = recall,
+    Specificity = specificity,
+    Accuracy = accuracy
+  ))
+}
+f1_score <- function(cm) {
+  TP <- cm[2,2]
+  FP <- cm[1,2]
+  FN <- cm[2,1]
+  
+  precision <- TP / (TP + FP)
+  recall <- TP / (TP + FN)
+  
+  f1 <- 2 * precision * recall / (precision + recall)
+  return(f1)
+}
+student_dropout_dataset_v3 <- read.csv("student_dropout_dataset_v3.csv")
+
 data <- student_dropout_dataset_v3[,-1] # rimuovo ID
 data$Gender <- as.factor(data$Gender)
 data$Internet_Access <- as.factor(data$Internet_Access)
@@ -389,6 +424,7 @@ ggpairs(dati_trn_num[,-8], aes(color = as.factor(dati_trn_num$Dropout)))
 # LDA sia il miglior metodo
 
 # LDA ---------------------------------------------------------------------
+table(dati_trn)
 
 library(MASS)
 mod_lda = lda(Dropout ~ ., data = dati_trn) 
@@ -403,7 +439,13 @@ calc_class_err = function(actual, predicted) {
 
 
 calc_class_err(predicted = lda_tst_pred, actual = y_test)
+
 table(predicted = lda_tst_pred, actual = y_test)
+
+
+lda_tab <- table(predicted = lda_tst_pred, actual = y_test)
+f1_lda <- f1_score(lda_tab)
+m.lda <- metrics(lda_tab)
 
 
 # QDA ---------------------------------------------------------------------
@@ -415,7 +457,13 @@ qda_tst_pred = predict(mod_qda, dati_tst)$class
 
 calc_class_err(predicted = qda_tst_pred, actual = y_test) 
 
+
 table(predicted = qda_tst_pred, actual = y_test)
+
+
+qda_tab <- table(predicted = qda_tst_pred, actual = y_test)
+f1_qda <- f1_score(qda_tab)
+m.qda <- metrics(qda_tab)
 
 
 # LOGISTICA ---------------------------------------------------------------
@@ -425,9 +473,39 @@ glm.probs <- predict(glm_fit, newdata= dati_tst,type = "response")
 glm.probs[1:10]
 
 glm_pred <- ifelse(glm.probs>0.5,1,0)
+
 table(glm_pred, y_test)
 calc_class_err(predicted = glm_pred, actual = y_test)
 
+
+
+glm_tab <- table(glm_pred, y_test)
+calc_class_err(predicted = glm_pred, actual = y_test)
+f1_glm <- f1_score(glm_tab)
+m.glm <- metrics(glm_tab)
+# OTTIMIZZAZIONE SOGLIA-------
+
+thresholds <- seq(0.1, 0.9, by = 0.01)
+f1_scores <- numeric(length(thresholds))
+
+for (i in seq_along(thresholds)) {
+  pred <- ifelse(glm.probs > thresholds[i], 1, 0)
+  cm <- table(y_test, pred)
+  f1_scores[i] <- f1_score(cm)
+}
+
+best_thresh <- thresholds[which.max(f1_scores)]
+best_thresh
+glm_pred_opt <- ifelse(glm.probs > best_thresh, 1, 0)
+
+# confronto
+table(glm_pred_opt, y_test)
+calc_class_err(predicted = glm_pred_opt, actual = y_test)
+
+# F1 finale
+opt_tab <- table(y_test, glm_pred_opt)
+f1_opt <- f1_score(opt_tab)
+m.opt <- metrics(opt_tab)
 
 # ALBERO ------------------------------------------------------------------
 library(ISLR)
@@ -441,6 +519,7 @@ text(tree_dati)
 tree_dati
 
 tree.pred <- predict(tree_dati , dati_tst , type = "class")
+
 table(tree.pred , y_test)
 calc_class_err(predicted = tree.pred, actual = y_test)
 
@@ -451,4 +530,82 @@ cbind(calc_class_err(predicted = lda_tst_pred, actual = y_test),calc_class_err(p
 
       )
 # logistica migliore ma per poco --> a me viene qda (2°)
+
+tree_tab <- table(tree.pred , y_test)
+calc_class_err(predicted = tree.pred, actual = y_test)
+f1_tree <- f1_score(tree_tab)
+m.tree <- metrics(tree_tab)
+# confronti ----------------------------------------------------------------
+
+cbind(calc_class_err(predicted = lda_tst_pred, actual = y_test),calc_class_err(predicted = qda_tst_pred, actual = y_test)
+      , calc_class_err(predicted = glm_pred, actual = y_test), calc_class_err(predicted = tree.pred, actual = y_test), 
+      calc_class_err(predicted =glm_pred_opt, actual = y_test)
+      )
+# logistica migliore ma per poco --> a me viene qda (2°)
+## tramite error test a me (NICOLE) viene primo qda
+
+cbind(f1_lda, f1_qda, f1_glm, f1_opt, f1_tree)
+
+tab <- cbind(
+  Error = c(calc_class_err(predicted = lda_tst_pred, actual = y_test),calc_class_err(predicted = qda_tst_pred, actual = y_test)
+            , calc_class_err(predicted = glm_pred, actual = y_test), calc_class_err(predicted = tree.pred, actual = y_test), 
+            calc_class_err(predicted =glm_pred_opt, actual = y_test)
+  ),
+  F1 = c(f1_lda, f1_qda, f1_glm, f1_opt, f1_tree)
+)
+
+met <- rbind(m.lda, m.qda, m.glm, m.opt, m.tree)
+
+rownames(tab) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE")
+rownames(met) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE")
+cbind(tab,met)
+# Qda - minor tasso di error rate
+# GLM opt - Migliore secondo F1
+
+## ROC su GLM
+library(pROC)
+roc_obj <- roc(y_test, glm.probs)
+plot(roc_obj, col="blue")
+auc(roc_obj)
+# AUC pari a 0.7993, indica una buona capacità del modello nella separazione delle classi
+
+## ROC su QDA
+qda_probs <- predict(mod_qda, dati_tst)$posterior[,2]
+roc_qda <- roc(y_test, qda_probs)
+plot(roc_qda, col="red", add=TRUE)
+auc(roc_qda)
+# anche AUC di QDA porta a dire che il modello ha una buona capcità discriminante 0.7926
+
+lda_probs <- predict(mod_lda, dati_tst)$posterior[,2]
+roc_lda <- roc(y_test, lda_probs)
+plot(roc_lda, col="green", add = T)
+auc(roc_lda)
+# l'AUC di lda è molto buono pari a 0.7992
+
+# nonostante auc di glm e lda siano molto simili e indicano una buona capacità
+# del modello di separare bene le classi, questa metrica è indipendente dalla
+# soglia. Infatti, per una migliore classificazione è meglio usare i glm che 
+# risultano avere valori più alti in termini di F1-score.
+
+
+
+# RANDOM FOREST -----------------------------------------------------------
+
+library(randomForest)
+rf_model <- randomForest(Dropout ~ ., data=dati_trn, ntree=200)
+rf_pred <- predict(rf_model, dati_tst)
+tab_rf <- table(rf_pred, y_test)
+calc_class_err(rf_pred, y_test) # l'errore è solamente l'8,4%
+metrics(tab_rf)
+f1_score(tab_rf) # 0.9184903
+# risultati altissimi; mostra un modello molto significativo
+
+rf_probs <- predict(rf_model, dati_tst, type = "prob")[,2]
+roc_rf <- roc(y_test, rf_probs)
+plot(roc_rf, col="red")
+auc(roc_rf) # 0.9806, quasi perfetto!!! forte capacità preditivva, ma attenzione all'overfitting
+
+### CROSS - VALIDATION .... magari questo si può fare.
+
+
 
