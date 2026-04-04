@@ -607,5 +607,5 @@ auc(roc_rf) # 0.9806, quasi perfetto!!! forte capacità preditivva, ma attenzion
 
 ### CROSS - VALIDATION .... magari questo si può fare.
 
-
+## ciao
 
