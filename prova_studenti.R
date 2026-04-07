@@ -75,6 +75,31 @@ gg_miss_var(data)
 library(mice)
 md.pattern(data)
 
+
+cor <- cor(data_numeric[,-10], use="complete.obs")
+# selezione variabili se necessaria ---------------------------------------
+library(ggcorrplot)
+ggcorrplot(cor, lab=T, hc.order=T)
+
+# Le variabili Semester GPA, CGPA e GPA sono collineari
+# infatti sono tutti indicatori della media dei voti. 
+# applico una selezione della variabili
+
+# --> io lo farei comunque prima di imputare i dati per risolvere logged events
+# ho trovato che GPA è calcolato sull'anno, CGPA è quello cumulato di tutti gli anni,
+# semester GPA è quello calcolato nel semestre corrente
+# quindi io terrei CGPA
+
+
+# Tengo solo un valore per la media, al fine di evitare dati ridondandi
+data <- data[, !(names(data) %in% c("Semester_GPA", "GPA"))]
+data_numeric <- data_numeric[, !(names(data_numeric) %in% c("Semester_GPA", "GPA"))]
+
+cor(data_numeric[,-8], use="complete.obs")
+
+
+
+
 table(data$Dropout)  
 # Dai dati originali, vedo che molti studenti completano i loro studi, mentre chi abbandona è
 # in numero minore. Siamo quindi in presenza di dati sbilanciati. 
@@ -100,13 +125,14 @@ test = data[-labels,]
 p <- dim(train)[2]
 
 my_predictorMatrix <- 1 - diag(nrow = p, ncol = p)
-my_predictorMatrix[ ,18] <- 0 
+my_predictorMatrix[ ,16] <- 0 
 
 library(mice)
 my_training1 <- mice(train, method = "pmm", predictorMatrix = my_predictorMatrix, seed = 1234, printFlag = FALSE)
 my_training2 <- mice(train, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
 my_training3 <- mice(train, method = "norm", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
 
+# A ME DICE DI USARE WITH AL POSTO DI GLM.MIDS
 model1 <- glm.mids(Dropout ~ ., family="binomial", data = my_training1)
 model2 <- glm.mids(Dropout ~ ., family="binomial", data = my_training2)
 model3 <- glm.mids(Dropout ~ ., family="binomial", data = my_training3)
@@ -154,7 +180,7 @@ test = data[-labels,]
 p <- dim(train)[2]
 
 my_predictorMatrix <- 1 - diag(nrow = p, ncol = p)
-my_predictorMatrix[ ,18] <- 0 
+my_predictorMatrix[ ,16] <- 0 
 
 library(mice)
 my_training1 <- mice(train, method = "pmm", predictorMatrix = my_predictorMatrix, seed = 1234, printFlag = FALSE)
@@ -211,7 +237,7 @@ test = data[-labels,]
 p <- dim(train)[2]
 
 my_predictorMatrix <- 1 - diag(nrow = p, ncol = p)
-my_predictorMatrix[ ,18] <- 0 
+my_predictorMatrix[ ,16] <- 0 
 
 library(mice)
 my_training1 <- mice(train, method = "pmm", predictorMatrix = my_predictorMatrix, seed = 1234, printFlag = FALSE)
@@ -296,6 +322,7 @@ data$Parental_Education <- as.factor(data$Parental_Education)
 data$Part_Time_Job <- as.factor(data$Part_Time_Job)
 data$Scholarship <- as.factor(data$Scholarship)
 data$Dropout <- as.factor(data$Dropout )
+data <- data[, !(names(data) %in% c("Semester_GPA", "GPA"))]
 
 data0 <- data[data$Dropout==0,]
 data1 <- data[data$Dropout==1,]
@@ -309,40 +336,18 @@ table(data$Dropout)
 p <- dim(data)[2]
 
 my_predictorMatrix <- 1 - diag(nrow = p, ncol = p)
-my_predictorMatrix[ ,18] <- 0 
+my_predictorMatrix[ ,16] <- 0 
 
 library(mice)
 data_imp <- mice(data, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
-data_imp$loggedEvents
 
 densityplot(data_imp)
 # --> family income?
 
-# selezione variabili se necessaria ---------------------------------------
-dati <- complete(data_imp, 1)
-dati_numeric <- dati[, c("Age", "Family_Income", "Study_Hours_per_Day", "Attendance_Rate", "Assignment_Delay_Days",
-                          "Travel_Time_Minutes", "Stress_Index", "GPA", "Semester_GPA", "CGPA", "Dropout")]
-
-cor = cor(dati_numeric[,-11])
-library(ggcorrplot)
-ggcorrplot(cor, lab=T, hc.order=T)
-
-# Le variabili Semester GPA, CGPA e GPA sono collineari
-# infatti sono tutti indicatori della media dei voti. 
-# applico una selezione della variabili
-
-# --> io lo farei comunque prima di imputare i dati per risolvere logged events
-# ho trovato che GPA è calcolato sull'anno, CGPA è quello cumulato di tutti gli anni,
-# semester GPA è quello calcolato nel semestre corrente
-# quindi io terrei CGPA
-
-
-# Tengo solo un valore per la media, al fine di evitare dati ridondandi
-dati <- dati[, !(names(dati) %in% c("Semester_GPA", "GPA"))]
 
 
 # Classificazione ---------------------------------------------------------
-
+dati <- complete(data_imp, 1)
 # Voglio prevedere l'abbandono o meno di uno studente. Per fare ciò, eseguo una classificazione
 # dei dati in base alla variabile Dropout. Se ottengo 0 significa che lo studente proseguirà i suoi
 # studi, 1 invece indica l'abbandono.
