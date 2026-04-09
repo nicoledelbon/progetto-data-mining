@@ -85,8 +85,7 @@ ggcorrplot(cor, lab=T, hc.order=T)
 # infatti sono tutti indicatori della media dei voti. 
 # applico una selezione della variabili
 
-# --> io lo farei comunque prima di imputare i dati per risolvere logged events
-# ho trovato che GPA è calcolato sull'anno, CGPA è quello cumulato di tutti gli anni,
+# GPA è calcolato sull'anno, CGPA è quello cumulato di tutti gli anni,
 # semester GPA è quello calcolato nel semestre corrente
 # quindi io terrei CGPA
 
@@ -96,9 +95,6 @@ data <- data[, !(names(data) %in% c("Semester_GPA", "GPA"))]
 data_numeric <- data_numeric[, !(names(data_numeric) %in% c("Semester_GPA", "GPA"))]
 
 cor(data_numeric[,-8], use="complete.obs")
-
-
-
 
 table(data$Dropout)  
 # Dai dati originali, vedo che molti studenti completano i loro studi, mentre chi abbandona è
@@ -214,12 +210,6 @@ accuracies
 # accuracies minori
 f1
 # 0.7547170 0.7547170 0.7538803 0.7538803
-
-# sofia:
-# 0.7319005 0.7341629 0.7330317 0.7330317
-# 0.7432286 0.7453954 0.7440347 0.7440347
-
-
 
 
 # oversampling -----------------------------------------------------------
