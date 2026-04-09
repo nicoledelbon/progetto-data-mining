@@ -304,7 +304,7 @@ data1 <- data[data$Dropout==1,]
 set.seed(1)
 lab <- sample(1:nrow(data1), nrow(data0), replace=T)
 
-dat1 <- rbind(data1[lab,], data0)
+data <- rbind(data1[lab,], data0)
 
 table(data$Dropout)
 
@@ -315,8 +315,8 @@ my_predictorMatrix[ ,16] <- 0
 
 library(mice)
 data_imp <- mice(data, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
-
 dati <- complete(data_imp, 1)
+
 
 ```
 
@@ -339,7 +339,9 @@ y_test <- dati_tst[, 16]
 
 dati_trn_num <- dati_trn[, c("Age","Family_Income"  , "Study_Hours_per_Day" ,"Attendance_Rate" ,     
                               "Travel_Time_Minutes" ,"Stress_Index","CGPA", "Dropout")]
-
+calc_class_err = function(actual, predicted) { 
+  mean(actual != predicted)
+}
 ```
 
 ```{r echo=FALSE, message=FALSE}
@@ -352,9 +354,6 @@ ggpairs(dati_trn_num[,-8], aes(color = as.factor(dati_trn_num$Dropout)))
 mod_lda = lda(Dropout ~ ., data = dati_trn) 
 lda_tst_pred = predict(mod_lda, dati_tst)$class
 
-calc_class_err = function(actual, predicted) { 
-  mean(actual != predicted)
-}
 calc_class_err(predicted = lda_tst_pred, actual = y_test)
 table(predicted = lda_tst_pred, actual = y_test)
 lda_tab <- table(predicted = lda_tst_pred, actual = y_test)
@@ -444,11 +443,10 @@ legend("topright", c("glm", "QDA", "LDA"), col=c("blue","red","green"), lty=1, l
 
 # Approfondimento
 ```{r echo=FALSE}
-library(randomForest)
 rf_model <- randomForest(Dropout ~ ., data=dati_trn, ntree=200)
 rf_pred <- predict(rf_model, dati_tst)
 tab_rf <- table(rf_pred, y_test)
-calc_class_err(rf_pred, y_test) # l'errore è solamente l'8,4%
+calc_class_err(rf_pred, y_test) 
 metrics(tab_rf)
 rf_probs <- predict(rf_model, dati_tst, type = "prob")[,2]
 roc_rf <- roc(y_test, rf_probs)
