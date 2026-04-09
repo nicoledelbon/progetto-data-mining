@@ -331,6 +331,7 @@ my_predictorMatrix <- 1 - diag(nrow = p, ncol = p)
 my_predictorMatrix[ ,16] <- 0 
 
 library(mice)
+
 data_imp <- mice(data, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
 
 densityplot(data_imp)
@@ -423,7 +424,7 @@ f1_scores <- numeric(length(soglia))
 for (i in seq_along(soglia)) {
   pred <- ifelse(glm.probs > soglia[i], 1, 0)
   cm <- table(y_test, pred)
-  f1_scores[i] <- f1_score(cm)
+  f1_scores[i] <- metrics(cm)["F1_score"]
 }
 
 soglia_opt <- soglia[which.max(f1_scores)]
@@ -469,24 +470,50 @@ cbind(tab,met)
 # GLM opt - Migliore secondo F1
 
 ## ROC su GLM
-library(pROC)
+roc = function(y, pred, soglia = seq(0,1,0.001)){
+  y = as.numeric(y)-1
+  TPR = numeric(length(soglia))
+  FPR = numeric(length(soglia))
+  for(i in 1:length(soglia)){
+    y_pred = ifelse(pred>=soglia[i], 1,0)
+    TP <- sum(y == 1 & y_pred == 1)    
+    FP <- sum(y == 0 & y_pred == 1)
+    FN <- sum(y == 1 & y_pred == 0)
+    TN <- sum(y == 0 & y_pred == 0)
+    TPR[i] <- TP / (TP + FN)
+    FPR[i] <- FP / (FP + TN)}
+  data.frame(TPR,FPR)
+}
+
+auc = function(roc_res){
+  a = 0
+  for(i in 1:(nrow(roc_res)-1)){
+    a = a - ((roc_res$FPR[i+1]-roc_res$FPR[i])*(roc_res$TPR[i+1]+roc_res$TPR[i])/2)}
+  round(a,4)
+}
+
 roc_obj <- roc(y_test, glm.probs)
-plot(roc_obj, col="blue")
+plot(roc_obj$FPR, roc_obj$TPR, type="l", col="blue",xlim=c(0,1), ylim=c(0,1),
+     xlab="False Positive Rate", ylab="True Positive Rate",
+     main="Curva ROC")
+abline(0,1,lty=2, col="gray")
 auc(roc_obj)
-# AUC pari a 0.7993, indica una buona capacità del modello nella separazione delle classi
+# indica una buona capacità del modello nella separazione delle classi
 
 ## ROC su QDA
 qda_probs <- predict(mod_qda, dati_tst)$posterior[,2]
 roc_qda <- roc(y_test, qda_probs)
-plot(roc_qda, col="red", add=TRUE)
+lines(roc_qda$FPR, roc_qda$TPR, col="red")
 auc(roc_qda)
-# anche AUC di QDA porta a dire che il modello ha una buona capcità discriminante 0.7926
+# anche AUC di QDA porta a dire che il modello ha una buona capcità discriminante
 
 lda_probs <- predict(mod_lda, dati_tst)$posterior[,2]
 roc_lda <- roc(y_test, lda_probs)
-plot(roc_lda, col="green", add = T)
+lines(roc_lda$FPR, roc_lda$TPR, col="green")
 auc(roc_lda)
-# l'AUC di lda è molto buono pari a 0.7992
+# l'AUC di lda è molto buono
+
+legend("topright", c("glm", "QDA", "LDA"), col=c("blue","red","green"), lty=1, lwd=3)
 
 # nonostante auc di glm e lda siano molto simili e indicano una buona capacità
 # del modello di separare bene le classi, questa metrica è indipendente dalla
@@ -508,7 +535,9 @@ f1_score(tab_rf) # 0.9184903
 
 rf_probs <- predict(rf_model, dati_tst, type = "prob")[,2]
 roc_rf <- roc(y_test, rf_probs)
-plot(roc_rf, col="red")
+plot(roc_rf$FPR, roc_rf$TPR, type="l", col="blue",xlim=c(0,1), ylim=c(0,1),
+     xlab="False Positive Rate", ylab="True Positive Rate",
+     main="Curva ROC")
 auc(roc_rf) # 0.9806, quasi perfetto!!! forte capacità preditivva, ma attenzione all'overfitting
 
 ### CROSS - VALIDATION .... magari questo si può fare.

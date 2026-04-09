@@ -415,7 +415,6 @@ cbind(tab,met)
 ```
 
 ```{r message=FALSE, echo=FALSE}
-library(pROC)
 roc_obj <- roc(y_test, glm.probs)
 plot(roc_obj, col="blue", main="Curva ROC: glm vs QDA vs LDA")
 auc(roc_obj)
