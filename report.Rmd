@@ -30,14 +30,10 @@ La nostra analisi ha lo scopo di prevedere se uno studente abbandona il ciclo di
 
 ```{r include=FALSE}
 data <- student_dropout_dataset_v3[,-1]
-data$Gender <- as.factor(data$Gender)
-data$Internet_Access <- as.factor(data$Internet_Access)
-data$Semester <- as.factor(data$Semester)
-data$Department <- as.factor(data$Department)
-data$Parental_Education <- as.factor(data$Parental_Education)
-data$Part_Time_Job <- as.factor(data$Part_Time_Job)
-data$Scholarship <- as.factor(data$Scholarship)
-data$Dropout <- as.factor(data$Dropout)
+fattori <- c("Gender","Internet_Access","Semester","Department",
+             "Parental_Education","Part_Time_Job","Scholarship","Dropout")
+data[fattori] <- lapply(data[fattori], as.factor)
+
 ```
 
 ```{r echo=FALSE}
@@ -289,14 +285,10 @@ f1_score <- function(cm) {
 student_dropout_dataset_v3 <- read.csv("student_dropout_dataset_v3.csv")
 
 data <- student_dropout_dataset_v3[,-1] # rimuovo ID
-data$Gender <- as.factor(data$Gender)
-data$Internet_Access <- as.factor(data$Internet_Access)
-data$Semester <- as.factor(data$Semester)
-data$Department <- as.factor(data$Department)
-data$Parental_Education <- as.factor(data$Parental_Education)
-data$Part_Time_Job <- as.factor(data$Part_Time_Job)
-data$Scholarship <- as.factor(data$Scholarship)
-data$Dropout <- as.factor(data$Dropout )
+fattori <- c("Gender","Internet_Access","Semester","Department",
+             "Parental_Education","Part_Time_Job","Scholarship","Dropout")
+data[fattori] <- lapply(data[fattori], as.factor)
+
 data <- data[, !(names(data) %in% c("Semester_GPA", "GPA"))]
 
 data0 <- data[data$Dropout==0,]

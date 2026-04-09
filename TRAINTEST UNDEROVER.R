@@ -205,10 +205,9 @@ for (i in seq_along(models)) {
 
 # Risultati
 accuracies
-# 0.7612108 0.7600897 0.7612108
-# accuracies minori
+# 0.7378081 0.7372837 0.7372837
 f1
-# 0.7641196 0.7627494 0.7641196
+# 0.5711835 0.5699571 0.5699571
 
 
 # oversampling -----------------------------------------------------------
@@ -252,9 +251,9 @@ for (i in seq_along(models)) {
 
 # Risultati
 accuracies
-# 0.7463198 0.7463198 0.7449504
+# 0.7346618 0.7367593 0.7346618
 f1
-# 0.7485579 0.7483871 0.7472005
+# 0.5660377 0.5679862 0.5660377
 
 
 train$Dropout <- factor(train$Dropout, labels=c("No","Yes"))
@@ -308,24 +307,23 @@ metrics <- function(cm) {
 student_dropout_dataset_v3 <- read.csv("student_dropout_dataset_v3.csv")
 
 data <- student_dropout_dataset_v3[,-1] # rimuovo ID
-data$Gender <- as.factor(data$Gender)
-data$Internet_Access <- as.factor(data$Internet_Access)
-data$Semester <- as.factor(data$Semester)
-data$Department <- as.factor(data$Department)
-data$Parental_Education <- as.factor(data$Parental_Education)
-data$Part_Time_Job <- as.factor(data$Part_Time_Job)
-data$Scholarship <- as.factor(data$Scholarship)
-data$Dropout <- as.factor(data$Dropout )
+fattori <- c("Gender","Internet_Access","Semester","Department",
+             "Parental_Education","Part_Time_Job","Scholarship","Dropout")
+
+data[fattori] <- lapply(data[fattori], as.factor)
 data <- data[, !(names(data) %in% c("Semester_GPA", "GPA"))]
 
-data0 <- data[data$Dropout==0,]
-data1 <- data[data$Dropout==1,]
 set.seed(1)
-lab <- sample(1:nrow(data1), nrow(data0), replace=T)
+labels = sample(1:nrow(data), 0.8*nrow(data))
+train = data[labels,]
+test = data[-labels,]
 
-data <- rbind(data1[lab,], data0)
+data0 <- train[train$Dropout==0,]
+data1 <- train[train$Dropout==1,]
 
-table(data$Dropout)
+set.seed(1)
+lab <- sample(1:nrow(data0), nrow(data1))
+train <- rbind(data0[lab,], data1)
 
 p <- dim(data)[2]
 

@@ -29,14 +29,10 @@ summary(student_dropout_dataset_v3)
 # in esame
 
 data <- student_dropout_dataset_v3[,-1]
-data$Gender <- as.factor(data$Gender)
-data$Internet_Access <- as.factor(data$Internet_Access)
-data$Semester <- as.factor(data$Semester)
-data$Department <- as.factor(data$Department)
-data$Parental_Education <- as.factor(data$Parental_Education)
-data$Part_Time_Job <- as.factor(data$Part_Time_Job)
-data$Scholarship <- as.factor(data$Scholarship)
-data$Dropout <- as.factor(data$Dropout)
+fattori <- c("Gender","Internet_Access","Semester","Department",
+             "Parental_Education","Part_Time_Job","Scholarship","Dropout")
+
+data[fattori] <- lapply(data[fattori], as.factor)
 
 # La variabile ID non è utile alle mie analisi, la rimuovo
 summary(data)
@@ -160,18 +156,18 @@ f1
 
 # undersampling -----------------------------------------------------------
 
-data0 <- data[data$Dropout==0,]
-data1 <- data[data$Dropout==1,]
-set.seed(1)
-lab <- sample(1:nrow(data0), nrow(data1))
-data <- rbind(data0[lab,], data1)
-
-table(data$Dropout)
-
 set.seed(1)
 labels = sample(1:nrow(data), 0.8*nrow(data))
 train = data[labels,]
 test = data[-labels,]
+
+train0 <- train[train$Dropout==0,]
+train1 <- train[train$Dropout==1,]
+set.seed(1)
+lab <- sample(1:nrow(train0), nrow(train1))
+data <- rbind(data0[lab,], data1)
+
+table(data$Dropout)
 
 p <- dim(train)[2]
 
@@ -300,7 +296,17 @@ metrics <- function(cm) {
     F1_score = f1
   ))
 }
-
+f1_score <- function(cm) {
+  TP <- cm[2,2]
+  FP <- cm[1,2]
+  FN <- cm[2,1]
+  
+  precision <- TP / (TP + FP)
+  recall <- TP / (TP + FN)
+  
+  f1 <- 2 * precision * recall / (precision + recall)
+  return(f1)
+}
 student_dropout_dataset_v3 <- read.csv("student_dropout_dataset_v3.csv")
 
 data <- student_dropout_dataset_v3[,-1] # rimuovo ID
@@ -317,9 +323,8 @@ data <- data[, !(names(data) %in% c("Semester_GPA", "GPA"))]
 data0 <- data[data$Dropout==0,]
 data1 <- data[data$Dropout==1,]
 set.seed(1)
-lab <- sample(1:nrow(data1), nrow(data0), replace=T)
-
-data <- rbind(data1[lab,], data0)
+lab <- sample(1:nrow(data0), nrow(data1))
+data <- rbind(data0[lab,], data1)
 
 table(data$Dropout)
 
@@ -469,7 +474,9 @@ cbind(tab,met)
 ## ROC su GLM
 library(pROC)
 roc_obj <- roc(y_test, glm.probs)
-plot(roc_obj, col="blue")
+plot(roc_obj, col="blue", main="Curva ROC: glm vs QDA vs LDA")
+legend("topright", c("glm", "QDA", "LDA"), col=c("blue","red","green"), lty=1, lwd=3)
+
 auc(roc_obj)
 # AUC pari a 0.7993, indica una buona capacità del modello nella separazione delle classi
 
