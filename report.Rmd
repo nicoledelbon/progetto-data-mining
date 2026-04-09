@@ -442,3 +442,17 @@ auc(roc_lda)
 legend("topright", c("glm", "QDA", "LDA"), col=c("blue","red","green"), lty=1, lwd=3)
 ```
 
+# Approfondimento
+```{r echo=FALSE}
+library(randomForest)
+rf_model <- randomForest(Dropout ~ ., data=dati_trn, ntree=200)
+rf_pred <- predict(rf_model, dati_tst)
+tab_rf <- table(rf_pred, y_test)
+calc_class_err(rf_pred, y_test) # l'errore è solamente l'8,4%
+metrics(tab_rf)
+rf_probs <- predict(rf_model, dati_tst, type = "prob")[,2]
+roc_rf <- roc(y_test, rf_probs)
+plot(roc_rf, col="red")
+auc(roc_rf)
+```
+
