@@ -79,7 +79,7 @@ data <- data[, !(names(data) %in% c("Semester_GPA", "GPA"))]
 data_numeric <- data_numeric[, !(names(data_numeric) %in% c("Semester_GPA", "GPA"))]
 ```
 
-# Data Preparation
+# Preparation
 
 ## Imputazione dei missing values
 
@@ -423,7 +423,7 @@ rownames(met) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE")
 cbind(tab,met)
 ```
 
-```{r message=FALSE}
+```{r message=FALSE, echo=FALSE}
 library(pROC)
 roc_obj <- roc(y_test, glm.probs)
 plot(roc_obj, col="blue", main="Curva ROC: glm vs QDA vs LDA")
