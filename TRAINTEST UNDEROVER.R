@@ -1,3 +1,7 @@
+# Dubbi
+# teniamo tutte le variabili? meglio solo quelle che spiegano dropout?
+# usare anche meyodo cart?
+# usare with e un poool invece che glm.mids
 
 rm(list=ls())
 
@@ -16,6 +20,7 @@ summary(student_dropout_dataset_v3)
 # I range di variazione delle variabili sono coerenti con le variabili
 # in esame
 
+# La variabile ID non è utile alle mie analisi, la rimuovo
 data <- student_dropout_dataset_v3[,-1]
 
 fattori <- c("Gender","Internet_Access","Semester","Department",
@@ -24,7 +29,7 @@ fattori <- c("Gender","Internet_Access","Semester","Department",
 data[fattori] <- lapply(data[fattori], as.factor)
 
 
-# La variabile ID non è utile alle mie analisi, la rimuovo
+
 summary(data)
 # Ho delle variabili numeriche e delle variabili dummy
 
@@ -96,9 +101,6 @@ table(data$Dropout)
 # e valutato il risultato migliore.
 
 
-# provo con i dati cosi, under e oversampling -----------------------------
-
-
 f1_score <- function(cm) {
   TP <- cm[2,2]
   FP <- cm[1,2]
@@ -110,15 +112,22 @@ f1_score <- function(cm) {
   f1 <- 2 * precision * recall / (precision + recall)
   return(f1)
 }
-# Accuracy alta nei dati originali, ma F1 basso --> unbalanced data
-# tra under e over sampling l'over sampling funziona molto meglio
 
-# come imputazioni sono all'incirca simili, il mean semvra essere il migliore
+# provo con i dati cosi, under e oversampling -----------------------------
+
+# divisione train test ----------------------------------------------------
 
 set.seed(1)
 labels = sample(1:nrow(data), 0.8*nrow(data))
 train = data[labels,]
 test = data[-labels,]
+
+data0 <- train[train$Dropout==0,]
+data1 <- train[train$Dropout==1,]
+
+
+# uso i dati come sono ----------------------------------------------------
+
 
 p <- dim(train)[2]
 
@@ -129,14 +138,17 @@ library(mice)
 my_training1 <- mice(train, method = "pmm", predictorMatrix = my_predictorMatrix, seed = 1234, printFlag = FALSE)
 my_training2 <- mice(train, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
 my_training3 <- mice(train, method = "norm", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
+my_training4 <- mice(train, method = "cart", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
 
-# A ME DICE DI USARE WITH AL POSTO DI GLM.MIDS
+
 model1 <- glm.mids(Dropout ~ ., family="binomial", data = my_training1)
 model2 <- glm.mids(Dropout ~ ., family="binomial", data = my_training2)
 model3 <- glm.mids(Dropout ~ ., family="binomial", data = my_training3)
+model4 <- glm.mids(Dropout ~ ., family="binomial", data = my_training4)
+
 
 # Lista dei modelli
-models <- list(model1, model2, model3)
+models <- list(model1, model2, model3, model4)
 
 # Lista per salvare le accuracy
 accuracies <- numeric(length(models))
@@ -159,11 +171,11 @@ accuracies
 f1
 # 0.5134752 0.5162200 0.5113636
 
+# Accuracy alta nei dati originali, ma F1 basso --> unbalanced data
+# come imputazioni sono all'incirca simili, il mean semvra essere il migliore
+
 
 # undersampling -----------------------------------------------------------
-
-data0 <- train[train$Dropout==0,]
-data1 <- train[train$Dropout==1,]
 
 set.seed(1)
 lab <- sample(1:nrow(data0), nrow(data1))
@@ -181,13 +193,16 @@ library(mice)
 my_training1 <- mice(train_und, method = "pmm", predictorMatrix = my_predictorMatrix, seed = 1234, printFlag = FALSE)
 my_training2 <- mice(train_und, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
 my_training3 <- mice(train_und, method = "norm", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
+my_training4 <- mice(train_und, method = "cart", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
+
 
 model1 <- glm.mids(Dropout ~ ., family="binomial", data = my_training1)
 model2 <- glm.mids(Dropout ~ ., family="binomial", data = my_training2)
 model3 <- glm.mids(Dropout ~ ., family="binomial", data = my_training3)
+model4 <- glm.mids(Dropout ~ ., family="binomial", data = my_training4)
 
 # Lista dei modelli
-models <- list(model1, model2, model3)
+models <- list(model1, model2, model3, model4)
 
 # Lista per salvare le accuracy
 accuracies <- numeric(length(models))
@@ -256,18 +271,9 @@ f1
 # 0.5660377 0.5679862 0.5660377
 
 
-train$Dropout <- factor(train$Dropout, labels=c("No","Yes"))
-
-train_smote <- SMOTE(Dropout ~ ., data=train)
-
-table(train_smote$Dropout)
-table(test$Dropout)
-
-
-
 # - -----------------------------------------------------------------------
 
-# L'oversampling è la tecnica che dà risultati migliori, considerando sia l'accuracy che  F1_score,
+# L'undersampling è la tecnica che dà risultati migliori, considerando sia l'accuracy che  F1_score,
 # metrica più adatta a valutare la precisione delle stime in presenza di dati sbilanciati.
 # In particolare, Il metodo mean risulta il migliore in termini di imputazione.
 # Abbiamo quindi eseguito un oversampling sulla totalità dei dati originali e imputato
@@ -454,17 +460,32 @@ m.tree=metrics(tree_tab)
 calc_class_err(predicted = tree.pred, actual = y_test)
 # 0.2786135
 
+
+
+# RANDOM FOREST -----------------------------------------------------------
+
+library(randomForest)
+rf_model <- randomForest(Dropout ~ ., data=dati_trn, ntree=200)
+rf_pred <- predict(rf_model, dati_tst)
+tab_rf <- table(rf_pred, y_test)
+calc_class_err(rf_pred, y_test) # l'errore è solamente l'8,4%
+m.rf = metrics(tab_rf)
+f1_score(tab_rf) # 0.9184903
+# risultati altissimi; mostra un modello molto significativo
+
+
+
 # confronti ----------------------------------------------------------------
 
 tab <- cbind(Error = c(calc_class_err(lda_tst_pred, y_test), calc_class_err(qda_tst_pred, y_test), 
                        calc_class_err(glm_pred, y_test), calc_class_err(glm_pred_opt, y_test),
-                       calc_class_err(tree.pred, y_test)))
+                       calc_class_err(tree.pred, y_test), calc_class_err(rf_pred, y_test)))
 # qda migliore
 
-met <- rbind(m.lda, m.qda, m.glm, m.opt, m.tree)
+met <- rbind(m.lda, m.qda, m.glm, m.opt, m.tree, m.rf)
 
-rownames(tab) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE")
-rownames(met) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE")
+rownames(tab) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE", "Random Forest")
+rownames(met) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE", "Random Forest")
 cbind(tab,met)
 # Qda - minor tasso di error rate
 # GLM opt - Migliore secondo F1
@@ -513,32 +534,22 @@ lines(roc_lda$FPR, roc_lda$TPR, col="green")
 auc(roc_lda)
 # l'AUC di lda è molto buono
 
-legend("topright", c("glm", "QDA", "LDA"), col=c("blue","red","green"), lty=1, lwd=3)
+
+## ROC su Random forest
+rf_probs <- predict(rf_model, dati_tst, type = "prob")[,2]
+roc_rf <- roc(y_test, rf_probs)
+lines(roc_rf$FPR, roc_rf$TPR, type="l", col="black",xlim=c(0,1), ylim=c(0,1))
+auc(roc_rf) # 0.9806, quasi perfetto!!! forte capacità preditivva, ma attenzione all'overfitting
+
+legend("topright", c("glm", "QDA", "LDA", "RF"), col=c("blue","red","green", "black"), lty=1, lwd=3)
+
+
 
 # nonostante auc di glm e lda siano molto simili e indicano una buona capacità
 # del modello di separare bene le classi, questa metrica è indipendente dalla
 # soglia. Infatti, per una migliore classificazione è meglio usare i glm che 
 # risultano avere valori più alti in termini di F1-score.
 
-
-
-# RANDOM FOREST -----------------------------------------------------------
-
-library(randomForest)
-rf_model <- randomForest(Dropout ~ ., data=dati_trn, ntree=200)
-rf_pred <- predict(rf_model, dati_tst)
-tab_rf <- table(rf_pred, y_test)
-calc_class_err(rf_pred, y_test) # l'errore è solamente l'8,4%
-metrics(tab_rf)
-f1_score(tab_rf) # 0.9184903
-# risultati altissimi; mostra un modello molto significativo
-
-rf_probs <- predict(rf_model, dati_tst, type = "prob")[,2]
-roc_rf <- roc(y_test, rf_probs)
-plot(roc_rf$FPR, roc_rf$TPR, type="l", col="blue",xlim=c(0,1), ylim=c(0,1),
-     xlab="False Positive Rate", ylab="True Positive Rate",
-     main="Curva ROC")
-auc(roc_rf) # 0.9806, quasi perfetto!!! forte capacità preditivva, ma attenzione all'overfitting
 
 ### CROSS - VALIDATION .... magari questo si può fare.
 
