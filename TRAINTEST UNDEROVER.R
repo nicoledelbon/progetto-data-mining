@@ -470,7 +470,6 @@ rf_pred <- predict(rf_model, dati_tst)
 tab_rf <- table(rf_pred, y_test)
 calc_class_err(rf_pred, y_test) # l'errore è solamente l'8,4%
 m.rf = metrics(tab_rf)
-f1_score(tab_rf) # 0.9184903
 # risultati altissimi; mostra un modello molto significativo
 
 
