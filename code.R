@@ -36,8 +36,6 @@ data <- data[, (names(data) %in% c("Family_Income", "Internet_Access",
                                    "Attendance_Rate","Assignment_Delay_Days",
                                    "Travel_Time_Minutes","Part_Time_Job",
                                    "Stress_Index","GPA","Dropout"))]
-<<<<<<< HEAD
-=======
 data_numeric <- data_numeric[, names(data_numeric) %in% c("Family_Income", "Attendance_Rate",
                                                           "Assignment_Delay_Days", "Travel_Time_Minutes",
                                                           "Stress_Index","GPA")]
