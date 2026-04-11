@@ -5,7 +5,7 @@
 
 rm(list=ls())
 
-student_dropout_dataset_v3 <- read.csv("~/progetto-data-mining/student_dropout_dataset_v3.csv")
+student_dropout_dataset_v3 <- read.csv("student_dropout_dataset_v3.csv")
 
 # Obiettivo della mia analisi
 # La nostra analisi ha lo scopo di prevedere se uno studente abbandona il ciclo di studi prima di terminarlo.
@@ -35,13 +35,22 @@ summary(data)
 
 # analisi grafica ---------------------------------------------------------
 colnames(data)
-data_numeric <- data[, c("Age","Family_Income", "Study_Hours_per_Day" ,"Attendance_Rate",
+data_numeric <- data[, c("Age","Family_Income", "Study_Hours_per_Day" ,"Attendance_Rate", 
                          "Travel_Time_Minutes" ,"Stress_Index" , "GPA","Semester_GPA" ,"CGPA", "Dropout")]
 par(mfrow=c(3,3))
 for(i in 1:(ncol(data_numeric)-1)){
   plot(data_numeric[,i], col=data$Dropout, ylab=colnames(data_numeric)[i],
        main="", pch=16)
   legend("left", levels(data$Dropout), col=c("black","red"), pch=16)
+}
+par(mfrow=c(1,1))
+library(ggplot2)
+
+par(mfrow=c(3,3))
+for(i in 1:(ncol(data_numeric)-1)){
+  boxplot(data_numeric[,i] ~ data$Dropout,
+          xlab="Dropout", ylab=colnames(data_numeric)[i],
+          col=c("green","red"))
 }
 par(mfrow=c(1,1))
 
