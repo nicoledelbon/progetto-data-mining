@@ -219,4 +219,3 @@ densityplot(data_imp)
 
 par(mfrow)
 densityplot(data$Family_Income)
->>>>>>> 2a246aad9470e09a36b86834d223a0012a9d2175
