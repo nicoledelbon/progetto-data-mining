@@ -34,14 +34,14 @@ step(mfull, mnull)
 
 data <- data[, (names(data) %in% c("Family_Income", "Internet_Access",
                                    "Attendance_Rate","Assignment_Delay_Days",
-<<<<<<< HEAD
+
                                    "Travel_Time_Minutes","Part_Time_Job",
                                    "Stress_Index","GPA","Dropout"))]
-=======
+
                                    
                                    "Travel_Time_Minutes","Part_Time_Job",]
 
->>>>>>> b81fc40 (..)
+
 data_numeric <- data_numeric[, names(data_numeric) %in% c("Family_Income", "Attendance_Rate",
                                                           "Assignment_Delay_Days", "Travel_Time_Minutes",
                                                           "Stress_Index","GPA")]
@@ -225,7 +225,4 @@ densityplot(data_imp)
 
 par(mfrow)
 densityplot(data$Family_Income)
-<<<<<<< HEAD
-=======
 
->>>>>>> b81fc40 (..)
