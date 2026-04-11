@@ -1,17 +1,9 @@
+# Dubbi
+# teniamo tutte le variabili? meglio solo quelle che spiegano dropout?
+# usare anche meyodo cart?
+# usare with e un poool invece che glm.mids
 
 rm(list=ls())
-
-f1_score <- function(cm) {
-  TP <- cm[2,2]
-  FP <- cm[1,2]
-  FN <- cm[2,1]
-  
-  precision <- TP / (TP + FP)
-  recall <- TP / (TP + FN)
-  
-  f1 <- 2 * precision * recall / (precision + recall)
-  return(f1)
-}
 
 student_dropout_dataset_v3 <- read.csv("~/progetto-data-mining/student_dropout_dataset_v3.csv")
 
@@ -28,13 +20,16 @@ summary(student_dropout_dataset_v3)
 # I range di variazione delle variabili sono coerenti con le variabili
 # in esame
 
+# La variabile ID non è utile alle mie analisi, la rimuovo
 data <- student_dropout_dataset_v3[,-1]
+
 fattori <- c("Gender","Internet_Access","Semester","Department",
              "Parental_Education","Part_Time_Job","Scholarship","Dropout")
 
 data[fattori] <- lapply(data[fattori], as.factor)
 
-# La variabile ID non è utile alle mie analisi, la rimuovo
+
+
 summary(data)
 # Ho delle variabili numeriche e delle variabili dummy
 
@@ -77,6 +72,10 @@ cor <- cor(data_numeric[,-10], use="complete.obs")
 library(ggcorrplot)
 ggcorrplot(cor, lab=T, hc.order=T)
 
+
+mfull <- glm(Dropout ~ . , data=data, family="binomial")
+mnull <- glm(Dropout ~ 1 , data=data, family="binomial")
+step(mfull, mnull)
 # Le variabili Semester GPA, CGPA e GPA sono collineari
 # infatti sono tutti indicatori della media dei voti. 
 # applico una selezione della variabili
@@ -102,17 +101,33 @@ table(data$Dropout)
 # e valutato il risultato migliore.
 
 
+f1_score <- function(cm) {
+  TP <- cm[2,2]
+  FP <- cm[1,2]
+  FN <- cm[2,1]
+  
+  precision <- TP / (TP + FP)
+  recall <- TP / (TP + FN)
+  
+  f1 <- 2 * precision * recall / (precision + recall)
+  return(f1)
+}
+
 # provo con i dati cosi, under e oversampling -----------------------------
 
-# Accuracy alta nei dati originali, ma F1 basso --> unbalanced data
-# tra under e over sampling l'over sampling funziona molto meglio
-
-# come imputazioni sono all'incirca simili, il mean semvra essere il migliore
+# divisione train test ----------------------------------------------------
 
 set.seed(1)
 labels = sample(1:nrow(data), 0.8*nrow(data))
 train = data[labels,]
 test = data[-labels,]
+
+data0 <- train[train$Dropout==0,]
+data1 <- train[train$Dropout==1,]
+
+
+# uso i dati come sono ----------------------------------------------------
+
 
 p <- dim(train)[2]
 
@@ -122,16 +137,18 @@ my_predictorMatrix[ ,16] <- 0
 library(mice)
 my_training1 <- mice(train, method = "pmm", predictorMatrix = my_predictorMatrix, seed = 1234, printFlag = FALSE)
 my_training2 <- mice(train, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
-
 my_training3 <- mice(train, method = "norm", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
+my_training4 <- mice(train, method = "cart", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
 
-# A ME DICE DI USARE WITH AL POSTO DI GLM.MIDS
+
 model1 <- glm.mids(Dropout ~ ., family="binomial", data = my_training1)
 model2 <- glm.mids(Dropout ~ ., family="binomial", data = my_training2)
 model3 <- glm.mids(Dropout ~ ., family="binomial", data = my_training3)
+model4 <- glm.mids(Dropout ~ ., family="binomial", data = my_training4)
+
 
 # Lista dei modelli
-models <- list(model1, model2, model3)
+models <- list(model1, model2, model3, model4)
 
 # Lista per salvare le accuracy
 accuracies <- numeric(length(models))
@@ -150,42 +167,42 @@ for (i in seq_along(models)) {
 
 # Risultati
 accuracies
-# 0.8227583 0.8227583 0.8232826
+#  0.8201363 0.8201363 0.8196120
 f1
-# 0.5279330 0.5292479 0.5299861
+# 0.5134752 0.5162200 0.5113636
+
+# Accuracy alta nei dati originali, ma F1 basso --> unbalanced data
+# come imputazioni sono all'incirca simili, il mean semvra essere il migliore
 
 
 # undersampling -----------------------------------------------------------
 
 set.seed(1)
-labels = sample(1:nrow(data), 0.8*nrow(data))
-train = data[labels,]
-test = data[-labels,]
+lab <- sample(1:nrow(data0), nrow(data1))
+train_und <- rbind(data0[lab,], data1)
 
-train0 <- train[train$Dropout==0,]
-train1 <- train[train$Dropout==1,]
-set.seed(1)
-lab <- sample(1:nrow(train0), nrow(train1))
-data <- rbind(data0[lab,], data1)
+table(train_und$Dropout)
 
-table(data$Dropout)
 
-p <- dim(train)[2]
+p <- dim(train_und)[2]
 
 my_predictorMatrix <- 1 - diag(nrow = p, ncol = p)
 my_predictorMatrix[ ,16] <- 0 
 
 library(mice)
-my_training1 <- mice(train, method = "pmm", predictorMatrix = my_predictorMatrix, seed = 1234, printFlag = FALSE)
-my_training2 <- mice(train, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
-my_training3 <- mice(train, method = "norm", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
+my_training1 <- mice(train_und, method = "pmm", predictorMatrix = my_predictorMatrix, seed = 1234, printFlag = FALSE)
+my_training2 <- mice(train_und, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
+my_training3 <- mice(train_und, method = "norm", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
+my_training4 <- mice(train_und, method = "cart", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
+
 
 model1 <- glm.mids(Dropout ~ ., family="binomial", data = my_training1)
 model2 <- glm.mids(Dropout ~ ., family="binomial", data = my_training2)
 model3 <- glm.mids(Dropout ~ ., family="binomial", data = my_training3)
+model4 <- glm.mids(Dropout ~ ., family="binomial", data = my_training4)
 
 # Lista dei modelli
-models <- list(model1, model2, model3)
+models <- list(model1, model2, model3, model4)
 
 # Lista per salvare le accuracy
 accuracies <- numeric(length(models))
@@ -203,33 +220,28 @@ for (i in seq_along(models)) {
 
 # Risultati
 accuracies
-# 0.7505643 0.7505643 0.7494357 0.7494357
-# accuracies minori
+# 0.7378081 0.7372837 0.7372837
 f1
-# 0.7547170 0.7547170 0.7538803 0.7538803
+# 0.5711835 0.5699571 0.5699571
 
 
 # oversampling -----------------------------------------------------------
 
 set.seed(1)
+
 lab <- sample(1:nrow(data1), nrow(data0), replace=T)
-data <- rbind(data1[lab,], data0)
-table(data$Dropout)
+train_ov <- rbind(data1[lab,], data0)
+table(train_ov$Dropout)
 
-set.seed(1)
-labels = sample(1:nrow(data), 0.8*nrow(data))
-train = data[labels,]
-test = data[-labels,]
-
-p <- dim(train)[2]
+p <- dim(train_ov)[2]
 
 my_predictorMatrix <- 1 - diag(nrow = p, ncol = p)
 my_predictorMatrix[ ,16] <- 0 
 
 library(mice)
-my_training1 <- mice(train, method = "pmm", predictorMatrix = my_predictorMatrix, seed = 1234, printFlag = FALSE)
-my_training2 <- mice(train, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
-my_training3 <- mice(train, method = "norm", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
+my_training1 <- mice(train_ov, method = "pmm", predictorMatrix = my_predictorMatrix, seed = 1234, printFlag = FALSE)
+my_training2 <- mice(train_ov, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
+my_training3 <- mice(train_ov, method = "norm", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
 
 model1 <- glm.mids(Dropout ~ ., family="binomial", data = my_training1)
 model2 <- glm.mids(Dropout ~ ., family="binomial", data = my_training2)
@@ -254,14 +266,14 @@ for (i in seq_along(models)) {
 
 # Risultati
 accuracies
-# 0.8278215 0.8293963 0.8278215 0.8283465
+# 0.7346618 0.7367593 0.7346618
 f1
-# 0.8934373 0.8943776 0.8934373 0.8937277
+# 0.5660377 0.5679862 0.5660377
 
 
 # - -----------------------------------------------------------------------
 
-# L'oversampling è la tecnica che dà risultati migliori, considerando sia l'accuracy che  F1_score,
+# L'undersampling è la tecnica che dà risultati migliori, considerando sia l'accuracy che  F1_score,
 # metrica più adatta a valutare la precisione delle stime in presenza di dati sbilanciati.
 # In particolare, Il metodo mean risulta il migliore in termini di imputazione.
 # Abbiamo quindi eseguito un oversampling sulla totalità dei dati originali e imputato
@@ -297,37 +309,27 @@ metrics <- function(cm) {
     F1_score = f1
   ))
 }
-f1_score <- function(cm) {
-  TP <- cm[2,2]
-  FP <- cm[1,2]
-  FN <- cm[2,1]
-  
-  precision <- TP / (TP + FP)
-  recall <- TP / (TP + FN)
-  
-  f1 <- 2 * precision * recall / (precision + recall)
-  return(f1)
-}
+
 student_dropout_dataset_v3 <- read.csv("student_dropout_dataset_v3.csv")
 
 data <- student_dropout_dataset_v3[,-1] # rimuovo ID
-data$Gender <- as.factor(data$Gender)
-data$Internet_Access <- as.factor(data$Internet_Access)
-data$Semester <- as.factor(data$Semester)
-data$Department <- as.factor(data$Department)
-data$Parental_Education <- as.factor(data$Parental_Education)
-data$Part_Time_Job <- as.factor(data$Part_Time_Job)
-data$Scholarship <- as.factor(data$Scholarship)
-data$Dropout <- as.factor(data$Dropout )
+fattori <- c("Gender","Internet_Access","Semester","Department",
+             "Parental_Education","Part_Time_Job","Scholarship","Dropout")
+
+data[fattori] <- lapply(data[fattori], as.factor)
 data <- data[, !(names(data) %in% c("Semester_GPA", "GPA"))]
 
-data0 <- data[data$Dropout==0,]
-data1 <- data[data$Dropout==1,]
+set.seed(1)
+labels = sample(1:nrow(data), 0.8*nrow(data))
+train = data[labels,]
+test = data[-labels,]
+
+data0 <- train[train$Dropout==0,]
+data1 <- train[train$Dropout==1,]
+
 set.seed(1)
 lab <- sample(1:nrow(data0), nrow(data1))
-data <- rbind(data0[lab,], data1)
-
-table(data$Dropout)
+train <- rbind(data0[lab,], data1)
 
 p <- dim(data)[2]
 
@@ -335,6 +337,7 @@ my_predictorMatrix <- 1 - diag(nrow = p, ncol = p)
 my_predictorMatrix[ ,16] <- 0 
 
 library(mice)
+
 data_imp <- mice(data, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
 
 densityplot(data_imp)
@@ -362,7 +365,7 @@ y_train <- dati_trn[,16]
 y_test <- dati_tst[, 16]
 
 dati_trn_num <- dati_trn[, c("Age","Family_Income"  , "Study_Hours_per_Day" ,"Attendance_Rate" ,     
-                              "Travel_Time_Minutes" ,"Stress_Index","CGPA", "Dropout")]
+                             "Travel_Time_Minutes" ,"Stress_Index","CGPA", "Dropout")]
 
 # visualizzazione dei dati imputati di train
 library(GGally)
@@ -427,7 +430,7 @@ f1_scores <- numeric(length(soglia))
 for (i in seq_along(soglia)) {
   pred <- ifelse(glm.probs > soglia[i], 1, 0)
   cm <- table(y_test, pred)
-  f1_scores[i] <- f1_score(cm)
+  f1_scores[i] <- metrics(cm)["F1_score"]
 }
 
 soglia_opt <- soglia[which.max(f1_scores)]
@@ -457,48 +460,6 @@ m.tree=metrics(tree_tab)
 calc_class_err(predicted = tree.pred, actual = y_test)
 # 0.2786135
 
-# confronti ----------------------------------------------------------------
-
-tab <- cbind(Error = c(calc_class_err(lda_tst_pred, y_test), calc_class_err(qda_tst_pred, y_test), 
-      calc_class_err(glm_pred, y_test), calc_class_err(glm_pred_opt, y_test),
-      calc_class_err(tree.pred, y_test)))
-# qda migliore
-
-met <- rbind(m.lda, m.qda, m.glm, m.opt, m.tree)
-
-rownames(tab) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE")
-rownames(met) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE")
-cbind(tab,met)
-# Qda - minor tasso di error rate
-# GLM opt - Migliore secondo F1
-
-## ROC su GLM
-library(pROC)
-roc_obj <- roc(y_test, glm.probs)
-plot(roc_obj, col="blue", main="Curva ROC: glm vs QDA vs LDA")
-legend("topright", c("glm", "QDA", "LDA"), col=c("blue","red","green"), lty=1, lwd=3)
-
-auc(roc_obj)
-# AUC pari a 0.7993, indica una buona capacità del modello nella separazione delle classi
-
-## ROC su QDA
-qda_probs <- predict(mod_qda, dati_tst)$posterior[,2]
-roc_qda <- roc(y_test, qda_probs)
-plot(roc_qda, col="red", add=TRUE)
-auc(roc_qda)
-# anche AUC di QDA porta a dire che il modello ha una buona capcità discriminante 0.7926
-
-lda_probs <- predict(mod_lda, dati_tst)$posterior[,2]
-roc_lda <- roc(y_test, lda_probs)
-plot(roc_lda, col="green", add = T)
-auc(roc_lda)
-# l'AUC di lda è molto buono pari a 0.7992
-
-# nonostante auc di glm e lda siano molto simili e indicano una buona capacità
-# del modello di separare bene le classi, questa metrica è indipendente dalla
-# soglia. Infatti, per una migliore classificazione è meglio usare i glm che 
-# risultano avere valori più alti in termini di F1-score.
-
 
 
 # RANDOM FOREST -----------------------------------------------------------
@@ -508,16 +469,87 @@ rf_model <- randomForest(Dropout ~ ., data=dati_trn, ntree=200)
 rf_pred <- predict(rf_model, dati_tst)
 tab_rf <- table(rf_pred, y_test)
 calc_class_err(rf_pred, y_test) # l'errore è solamente l'8,4%
-metrics(tab_rf)
-f1_score(tab_rf) # 0.9184903
+m.rf = metrics(tab_rf)
 # risultati altissimi; mostra un modello molto significativo
 
+
+
+# confronti ----------------------------------------------------------------
+
+tab <- cbind(Error = c(calc_class_err(lda_tst_pred, y_test), calc_class_err(qda_tst_pred, y_test), 
+                       calc_class_err(glm_pred, y_test), calc_class_err(glm_pred_opt, y_test),
+                       calc_class_err(tree.pred, y_test), calc_class_err(rf_pred, y_test)))
+# qda migliore
+
+met <- rbind(m.lda, m.qda, m.glm, m.opt, m.tree, m.rf)
+
+rownames(tab) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE", "Random Forest")
+rownames(met) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE", "Random Forest")
+cbind(tab,met)
+# Qda - minor tasso di error rate
+# GLM opt - Migliore secondo F1
+
+## ROC su GLM
+roc = function(y, pred, soglia = seq(0,1,0.001)){
+  y = as.numeric(y)-1
+  TPR = numeric(length(soglia))
+  FPR = numeric(length(soglia))
+  for(i in 1:length(soglia)){
+    y_pred = ifelse(pred>=soglia[i], 1,0)
+    TP <- sum(y == 1 & y_pred == 1)    
+    FP <- sum(y == 0 & y_pred == 1)
+    FN <- sum(y == 1 & y_pred == 0)
+    TN <- sum(y == 0 & y_pred == 0)
+    TPR[i] <- TP / (TP + FN)
+    FPR[i] <- FP / (FP + TN)}
+  data.frame(TPR,FPR)
+}
+
+auc = function(roc_res){
+  a = 0
+  for(i in 1:(nrow(roc_res)-1)){
+    a = a - ((roc_res$FPR[i+1]-roc_res$FPR[i])*(roc_res$TPR[i+1]+roc_res$TPR[i])/2)}
+  round(a,4)
+}
+
+roc_obj <- roc(y_test, glm.probs)
+plot(roc_obj$FPR, roc_obj$TPR, type="l", col="blue",xlim=c(0,1), ylim=c(0,1),
+     xlab="False Positive Rate", ylab="True Positive Rate",
+     main="Curva ROC")
+abline(0,1,lty=2, col="gray")
+auc(roc_obj)
+# indica una buona capacità del modello nella separazione delle classi
+
+## ROC su QDA
+qda_probs <- predict(mod_qda, dati_tst)$posterior[,2]
+roc_qda <- roc(y_test, qda_probs)
+lines(roc_qda$FPR, roc_qda$TPR, col="red")
+auc(roc_qda)
+# anche AUC di QDA porta a dire che il modello ha una buona capcità discriminante
+
+lda_probs <- predict(mod_lda, dati_tst)$posterior[,2]
+roc_lda <- roc(y_test, lda_probs)
+lines(roc_lda$FPR, roc_lda$TPR, col="green")
+auc(roc_lda)
+# l'AUC di lda è molto buono
+
+
+## ROC su Random forest
 rf_probs <- predict(rf_model, dati_tst, type = "prob")[,2]
 roc_rf <- roc(y_test, rf_probs)
-plot(roc_rf, col="red")
+lines(roc_rf$FPR, roc_rf$TPR, type="l", col="black",xlim=c(0,1), ylim=c(0,1))
 auc(roc_rf) # 0.9806, quasi perfetto!!! forte capacità preditivva, ma attenzione all'overfitting
+
+legend("topright", c("glm", "QDA", "LDA", "RF"), col=c("blue","red","green", "black"), lty=1, lwd=3)
+
+
+
+# nonostante auc di glm e lda siano molto simili e indicano una buona capacità
+# del modello di separare bene le classi, questa metrica è indipendente dalla
+# soglia. Infatti, per una migliore classificazione è meglio usare i glm che 
+# risultano avere valori più alti in termini di F1-score.
+
 
 ### CROSS - VALIDATION .... magari questo si può fare.
 
 ## ciao
-
