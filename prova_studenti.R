@@ -122,6 +122,7 @@ my_predictorMatrix[ ,16] <- 0
 library(mice)
 my_training1 <- mice(train, method = "pmm", predictorMatrix = my_predictorMatrix, seed = 1234, printFlag = FALSE)
 my_training2 <- mice(train, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
+
 my_training3 <- mice(train, method = "norm", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
 
 # A ME DICE DI USARE WITH AL POSTO DI GLM.MIDS

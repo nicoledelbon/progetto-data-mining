@@ -5,7 +5,7 @@
 
 rm(list=ls())
 
-student_dropout_dataset_v3 <- read.csv("~/progetto-data-mining/student_dropout_dataset_v3.csv")
+student_dropout_dataset_v3 <- read.csv("student_dropout_dataset_v3.csv")
 
 # Obiettivo della mia analisi
 # La nostra analisi ha lo scopo di prevedere se uno studente abbandona il ciclo di studi prima di terminarlo.
@@ -35,13 +35,24 @@ summary(data)
 
 # analisi grafica ---------------------------------------------------------
 colnames(data)
-data_numeric <- data[, c("Age","Family_Income", "Study_Hours_per_Day" ,"Attendance_Rate",
-                         "Travel_Time_Minutes" ,"Stress_Index" , "GPA","Semester_GPA" ,"CGPA", "Dropout")]
+data_numeric <- data[, c("Family_Income",
+                                   "Attendance_Rate","Assignment_Delay_Days",
+                                   "Travel_Time_Minutes","Part_Time_Job",
+                                   "Stress_Index","GPA","Dropout")]
 par(mfrow=c(3,3))
 for(i in 1:(ncol(data_numeric)-1)){
   plot(data_numeric[,i], col=data$Dropout, ylab=colnames(data_numeric)[i],
        main="", pch=16)
   legend("left", levels(data$Dropout), col=c("black","red"), pch=16)
+}
+par(mfrow=c(1,1))
+library(ggplot2)
+
+par(mfrow=c(3,3))
+for(i in 1:(ncol(data_numeric)-1)){
+  boxplot(data_numeric[,i] ~ data$Dropout,
+          xlab="Dropout", ylab=colnames(data_numeric)[i],
+          col=c("green","red"))
 }
 par(mfrow=c(1,1))
 
@@ -159,7 +170,7 @@ for (i in seq_along(models)) {
                        se.fit = TRUE, newdata = test, type = "response")
   single_prediction <- sapply(prediction, `[[`, "fit")
   final_pred <- apply(single_prediction, 1, mean)
-  final_pred_class <- ifelse(final_pred > 0.5, 1, 0)
+  final_pred_class <- ifelse(final_pred > 0.4, 1, 0)
   confusion_matrix <- table(test$Dropout, final_pred_class)
   accuracies[i] <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
   f1[i] <- f1_score(confusion_matrix)
@@ -202,7 +213,7 @@ model3 <- glm.mids(Dropout ~ ., family="binomial", data = my_training3)
 model4 <- glm.mids(Dropout ~ ., family="binomial", data = my_training4)
 
 # Lista dei modelli
-models <- list(model1, model2, model3, model4)
+models_under <- list(model1, model2, model3, model4)
 
 # Lista per salvare le accuracy
 accuracies <- numeric(length(models))
@@ -242,6 +253,8 @@ library(mice)
 my_training1 <- mice(train_ov, method = "pmm", predictorMatrix = my_predictorMatrix, seed = 1234, printFlag = FALSE)
 my_training2 <- mice(train_ov, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
 my_training3 <- mice(train_ov, method = "norm", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
+my_training3 <- mice(train_ov, method = "cart", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
+
 
 model1 <- glm.mids(Dropout ~ ., family="binomial", data = my_training1)
 model2 <- glm.mids(Dropout ~ ., family="binomial", data = my_training2)
@@ -287,7 +300,7 @@ f1
 
 rm(list=ls())
 
-student_dropout_dataset_v3 <- read.csv("~/progetto-data-mining/student_dropout_dataset_v3.csv")
+student_dropout_dataset_v3 <- read.csv("student_dropout_dataset_v3.csv")
 
 metrics <- function(cm) {
   TP <- cm[2,2]
