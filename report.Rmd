@@ -11,7 +11,7 @@ Nel seguente elaborato si intende prevedere l'abbandono scolastico utilzzando ca
 
 I dati riproducono fedelmente le distribuzioni reali degli studenti, mantenendo asimmetrie, valori mancanti in alcune osservazioni e correlazioni tra esse.
 
-# Pre-processing
+## Pre-processing
 Poichè il dataset include valori mancanti e asimmetrie è necessario gestire questi valori.
 
 Abbiamo porvato a fare imputazione dei dati tramite tre metodi principali: 
@@ -41,7 +41,7 @@ library(pROC)
 student_dropout_dataset_v3 <- read.csv("~/progetto-data-mining/student_dropout_dataset_v3.csv")
 ```
 
-# Understanding
+## Understanding
 
 La nostra analisi ha lo scopo di prevedere se uno studente abbandona il ciclo di studi prima di terminarlo. Al fine di prevedere l'abbandono, abbiamo analizzato un dataset contenente diverse informazioni, sui dati personali dello studente e sulla sua educazione, ma anche sulla famiglia e le possibilità che ha a disposizione ( es: accesso a Internet)
 
@@ -60,25 +60,26 @@ summary(data)
 Ho dei valori mancanti nelle variabili Family_Income (dato sensibile), Study_Hours_per_Day e Stress_index. I range di variazione delle variabili sono coerenti con le variabili in esame
 
 ```{r echo=FALSE}
-data_numeric <- data[, c("Age","Family_Income", "Study_Hours_per_Day" ,"Attendance_Rate",
-                         "Travel_Time_Minutes" ,"Stress_Index" , "GPA","Semester_GPA" ,"CGPA", "Dropout")]
-par(mfrow=c(3,3))
-for(i in 1:(ncol(data_numeric)-1)){
-  plot(data_numeric[,i], col=data$Dropout, ylab=colnames(data_numeric)[i],
+data_numeric <- data[, c("Age","Family_Income", "Study_Hours_per_Day" ,"Attendance_Rate","Assignment_Delay_Days",
+                         "Travel_Time_Minutes" ,"Stress_Index" , "GPA","Semester_GPA" ,"CGPA")]
+par(mfrow=c(2,5))
+for(i in 1:ncol(data_numeric)){
+  boxplot(data_numeric[,i] ~ data$Dropout, col=c("green", "red"), ylab=colnames(data_numeric)[i],
        main="", pch=16)
-  legend("left", levels(data$Dropout), col=c("black","red"), pch=16)
 }
 par(mfrow=c(1,1))
+
 ```
 
 ```{r, echo=FALSE}
 vis_miss(data)
 gg_miss_var(data)
 md.pattern(data)
+
 ```
 
 ```{r, include=FALSE}
-cor <- cor(data_numeric[,-10], use="complete.obs")
+cor <- cor(data_numeric, use="complete.obs")
 
 ```
 
@@ -87,13 +88,25 @@ ggcorrplot(cor, lab=T, hc.order=T)
 ```
 
 ```{r, include=FALSE}
-data <- data[, !(names(data) %in% c("Semester_GPA", "GPA"))]
-data_numeric <- data_numeric[, !(names(data_numeric) %in% c("Semester_GPA", "GPA"))]
+mfull <- glm(Dropout ~ . , data=data, family="binomial")
+mnull <- glm(Dropout ~ 1 , data=data, family="binomial")
+step(mfull, mnull)
+
+data <- data[, (names(data) %in% c("Family_Income", "Internet_Access",
+                                   "Attendance_Rate","Assignment_Delay_Days",
+
+                                   "Travel_Time_Minutes","Part_Time_Job",
+                                   "Stress_Index","GPA","Dropout"))]
+
+data_numeric <- data_numeric[, names(data_numeric) %in% c("Family_Income", "Attendance_Rate",
+                                                          "Assignment_Delay_Days", "Travel_Time_Minutes",
+                                                          "Stress_Index","GPA")]
+
 ```
 
-# Preparation
+## Preparation
 
-## Imputazione dei missing values
+### Imputazione dei missing values
 
 ```{r, include=FALSE}
 f1_score <- function(cm) {
@@ -115,41 +128,48 @@ labels = sample(1:nrow(data), 0.8*nrow(data))
 train = data[labels,]
 test = data[-labels,]
 
+data0 <- train[train$Dropout==0,]
+data1 <- train[train$Dropout==1,]
+```
+
+```{r, include=FALSE}
 p <- dim(train)[2]
 
 my_predictorMatrix <- 1 - diag(nrow = p, ncol = p)
-my_predictorMatrix[ ,16] <- 0 
+my_predictorMatrix[ ,9] <- 0 
 
+library(mice)
 my_training1 <- mice(train, method = "pmm", predictorMatrix = my_predictorMatrix, seed = 1234, printFlag = FALSE)
 my_training2 <- mice(train, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
-my_training3 <- mice(train, method = "norm", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
+my_training3 <- mice(train, method = "cart", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
 
 model1 <- glm.mids(Dropout ~ ., family="binomial", data = my_training1)
 model2 <- glm.mids(Dropout ~ ., family="binomial", data = my_training2)
 model3 <- glm.mids(Dropout ~ ., family="binomial", data = my_training3)
 
-# Lista dei modelli
 models <- list(model1, model2, model3)
 
-# Lista per salvare le accuracy
-accuracies <- numeric(length(models))
-f1 <- numeric(length(models))
-
-for (i in seq_along(models)) {
-  prediction <- lapply(getfit(models[[i]]), predict, 
-                       se.fit = TRUE, newdata = test, type = "response")
-  single_prediction <- sapply(prediction, `[[`, "fit")
-  final_pred <- apply(single_prediction, 1, mean)
-  final_pred_class <- ifelse(final_pred > 0.5, 1, 0)
-  confusion_matrix <- table(test$Dropout, final_pred_class)
-  accuracies[i] <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
-  f1[i] <- f1_score(confusion_matrix)
+eval = function(models, test){
+  accuracies <- numeric(length(models))
+  f1 <- numeric(length(models))
+  
+  for (i in seq_along(models)) {
+    prediction <- lapply(getfit(models[[i]]), predict, 
+                         se.fit = TRUE, newdata = test, type = "response")
+    single_prediction <- sapply(prediction, `[[`, "fit")
+    final_pred <- apply(single_prediction, 1, mean)
+    final_pred_class <- ifelse(final_pred > 0.5, 1, 0)
+    confusion_matrix <- table(test$Dropout, final_pred_class)
+    accuracies[i] <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
+    f1[i] <- f1_score(confusion_matrix)
+  }
+  
+  rbind(accuracies, f1)
 }
 ```
 
 ```{r echo=FALSE}
-accuracies
-f1
+eval(models,test)
 ```
 
 ```{r echo=FALSE}
@@ -162,53 +182,33 @@ Dai dati originali, vedo che molti studenti completano i loro studi, mentre chi 
 ## Undersampling
 
 ```{r, include=FALSE}
-data0 <- data[data$Dropout==0,]
-data1 <- data[data$Dropout==1,]
 set.seed(1)
 lab <- sample(1:nrow(data0), nrow(data1))
-data <- rbind(data0[lab,], data1)
+train_und <- rbind(data0[lab,], data1)
 
-table(data$Dropout)
+table(train_und$Dropout)
 
-set.seed(1)
-labels = sample(1:nrow(data), 0.8*nrow(data))
-train = data[labels,]
-test = data[-labels,]
-
-p <- dim(train)[2]
+p <- dim(train_und)[2]
 
 my_predictorMatrix <- 1 - diag(nrow = p, ncol = p)
-my_predictorMatrix[ ,16] <- 0 
+my_predictorMatrix[ ,9] <- 0 
 
-my_training1 <- mice(train, method = "pmm", predictorMatrix = my_predictorMatrix, seed = 1234, printFlag = FALSE)
-my_training2 <- mice(train, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
-my_training3 <- mice(train, method = "norm", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
+library(mice)
+my_training1 <- mice(train_und, method = "pmm", predictorMatrix = my_predictorMatrix, seed = 1234, printFlag = FALSE)
+my_training2 <- mice(train_und, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
+my_training3 <- mice(train_und, method = "cart", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
 
 model1 <- glm.mids(Dropout ~ ., family="binomial", data = my_training1)
 model2 <- glm.mids(Dropout ~ ., family="binomial", data = my_training2)
 model3 <- glm.mids(Dropout ~ ., family="binomial", data = my_training3)
 
-# Lista dei modelli
-models <- list(model1, model2, model3)
+models_und <- list(model1, model2, model3)
 
-# Lista per salvare le accuracy
-accuracies <- numeric(length(models))
-f1 <- numeric(length(models))
-for (i in seq_along(models)) {
-  prediction <- lapply(getfit(models[[i]]), predict, 
-                       se.fit = TRUE, newdata = test, type = "response")
-  single_prediction <- sapply(prediction, `[[`, "fit")
-  final_pred <- apply(single_prediction, 1, mean)
-  final_pred_class <- ifelse(final_pred > 0.5, 1, 0)
-  confusion_matrix <- table(test$Dropout, final_pred_class)
-  accuracies[i] <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
-  f1[i] <- f1_score(confusion_matrix)
-}
 ```
 
 ```{r, echo=FALSE}
-accuracies
-f1
+eval(models_und,test)
+
 ```
 
 ## Oversampling
@@ -216,54 +216,36 @@ f1
 ```{r, include=FALSE}
 set.seed(1)
 lab <- sample(1:nrow(data1), nrow(data0), replace=T)
-data <- rbind(data1[lab,], data0)
-table(data$Dropout)
+train_ov <- rbind(data1[lab,], data0)
+table(train_ov$Dropout)
 
-set.seed(1)
-labels = sample(1:nrow(data), 0.8*nrow(data))
-train = data[labels,]
-test = data[-labels,]
-
-p <- dim(train)[2]
+p <- dim(train_ov)[2]
 
 my_predictorMatrix <- 1 - diag(nrow = p, ncol = p)
-my_predictorMatrix[ ,16] <- 0 
+my_predictorMatrix[ ,9] <- 0 
 
-my_training1 <- mice(train, method = "pmm", predictorMatrix = my_predictorMatrix, seed = 1234, printFlag = FALSE)
-my_training2 <- mice(train, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
-my_training3 <- mice(train, method = "norm", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
+library(mice)
+my_training1 <- mice(train_ov, method = "pmm", predictorMatrix = my_predictorMatrix, seed = 1234, printFlag = FALSE)
+my_training2 <- mice(train_ov, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
+my_training3 <- mice(train_ov, method = "cart", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
 
 model1 <- glm.mids(Dropout ~ ., family="binomial", data = my_training1)
 model2 <- glm.mids(Dropout ~ ., family="binomial", data = my_training2)
 model3 <- glm.mids(Dropout ~ ., family="binomial", data = my_training3)
 
-# Lista dei modelli
-models <- list(model1, model2, model3)
+models_ov <- list(model1, model2, model3)
 
-# Lista per salvare le accuracy
-accuracies <- numeric(length(models))
-f1 <- numeric(length(models))
-for (i in seq_along(models)) {
-  prediction <- lapply(getfit(models[[i]]), predict, 
-                       se.fit = TRUE, newdata = test, type = "response")
-  single_prediction <- sapply(prediction, `[[`, "fit")
-  final_pred <- apply(single_prediction, 1, mean)
-  final_pred_class <- ifelse(final_pred > 0.5, 1, 0)
-  confusion_matrix <- table(test$Dropout, final_pred_class)
-  accuracies[i] <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
-  f1[i] <- f1_score(confusion_matrix)
-}
 ```
 
 ```{r, echo=FALSE}
-accuracies
-f1
+eval(models_ov,test)
+
 ```
 
 ```{r, include=FALSE}
 rm(list=ls())
 
-student_dropout_dataset_v3 <- read.csv("~/progetto-data-mining/student_dropout_dataset_v3.csv")
+student_dropout_dataset_v3 <- read.csv("student_dropout_dataset_v3.csv")
 
 metrics <- function(cm) {
   TP <- cm[2,2]
@@ -286,16 +268,8 @@ metrics <- function(cm) {
   ))
 }
 
-f1_score <- function(cm) {
-  TP <- cm[2,2]
-  FP <- cm[1,2]
-  FN <- cm[2,1]
-  
-  precision <- TP / (TP + FP)
-  recall <- TP / (TP + FN)
-  
-  f1 <- 2 * precision * recall / (precision + recall)
-  return(f1)
+calc_class_err = function(actual, predicted) { 
+  mean(actual != predicted)
 }
 
 student_dropout_dataset_v3 <- read.csv("student_dropout_dataset_v3.csv")
@@ -304,61 +278,72 @@ data <- student_dropout_dataset_v3[,-1] # rimuovo ID
 fattori <- c("Gender","Internet_Access","Semester","Department",
              "Parental_Education","Part_Time_Job","Scholarship","Dropout")
 data[fattori] <- lapply(data[fattori], as.factor)
+data <- data[, (names(data) %in% c("Family_Income", "Internet_Access",
+                                   "Attendance_Rate","Assignment_Delay_Days",
+                                   "Travel_Time_Minutes","Part_Time_Job",
+                                   "Stress_Index","GPA","Dropout"))]
+set.seed(1)
+labels = sample(1:nrow(data), 0.8*nrow(data))
+train = data[labels,]
+test = data[-labels,]
 
-data <- data[, !(names(data) %in% c("Semester_GPA", "GPA"))]
+data0 <- train[train$Dropout==0,]
+data1 <- train[train$Dropout==1,]
 
-data0 <- data[data$Dropout==0,]
-data1 <- data[data$Dropout==1,]
 set.seed(1)
 lab <- sample(1:nrow(data1), nrow(data0), replace=T)
-
-data <- rbind(data1[lab,], data0)
-
-table(data$Dropout)
+train <- rbind(data1[lab,], data0)
 
 p <- dim(data)[2]
 
 my_predictorMatrix <- 1 - diag(nrow = p, ncol = p)
-my_predictorMatrix[ ,16] <- 0 
+my_predictorMatrix[ ,9] <- 0 
 
 library(mice)
-data_imp <- mice(data, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
-dati <- complete(data_imp, 1)
+data_imp <- mice(data, method = "cart", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
+
+densityplot(data_imp)
+
+observed <- data$Family_Income[!is.na(data$Family_Income)]
+
+dev <- sapply(1:5, function(i){
+  imp <- complete(data_imp, i)$Family_Income
+  abs(mean(imp, na.rm=TRUE) - mean(observed))
+})
+dati <- complete(data_imp, which.min(dev))
 
 
 ```
 
-# Modelling
+## Modelling
 
 Voglio prevedere l'abbandono o meno di uno studente. Per fare ciò, eseguo una classificazione dei dati in base alla variabile Dropout. Se ottengo 0 significa che lo studente proseguirà i suoi studi, 1 invece indica l'abbandono. Decido di selezionare il primo set di dati ottenuto dalla prima imputazione (?). Divido i dati nuovamente in test e train, e valuto il miglior modello di classificazione.
 
 ```{r, include=FALSE}
 set.seed(1)
+set.seed(1)
 lab1 <- sample(1:nrow(dati), 0.2*nrow(dati))
 dati_trn <- dati[-lab1,]
 dati_tst <- dati[lab1,]
-dati_trn_no_dropout <- dati[-lab1,-16]
-dati_tst_no_dropout <- dati[lab1,-16]
-x_train = dati_trn[,-16]
-x_test = dati_tst[,-16]
-y_train <- dati_trn[,16]
-y_test <- dati_tst[, 16]
+dati_trn_no_dropout <- dati[-lab1,-9]
+dati_tst_no_dropout <- dati[lab1,-9]
+x_train = dati_trn[,-9]
+x_test = dati_tst[,-9]
+y_train <- dati_trn[,9]
+y_test <- dati_tst[, 9]
+dati_trn_num <- dati_trn[, c("Family_Income","Attendance_Rate","Assignment_Delay_Days",     
+                             "Travel_Time_Minutes","Stress_Index","GPA")]
 
-dati_trn_num <- dati_trn[, c("Age","Family_Income"  , "Study_Hours_per_Day" ,"Attendance_Rate" ,     
-                              "Travel_Time_Minutes" ,"Stress_Index","CGPA", "Dropout")]
-calc_class_err = function(actual, predicted) { 
-  mean(actual != predicted)
-}
 ```
 
 ```{r echo=FALSE, message=FALSE}
-ggpairs(dati_trn_num[,-8], aes(color = as.factor(dati_trn_num$Dropout)))
+ggpairs(dati_trn_num, aes(color = as.factor(dati_trn$Dropout)))
 
 ```
 
 ### LDA
 
-```{r, echo=FALSE}
+```{r, include=FALSE}
 mod_lda = lda(Dropout ~ ., data = dati_trn) 
 lda_tst_pred = predict(mod_lda, dati_tst)$class
 
@@ -370,7 +355,7 @@ m.lda <- metrics(lda_tab)
 
 ### QDA
 
-```{r, echo=FALSE}
+```{r, include=FALSE}
 mod_qda = qda(Dropout ~ ., data = dati_trn) 
 qda_tst_pred = predict(mod_qda, dati_tst)$class
 calc_class_err(predicted = qda_tst_pred, actual = y_test) 
@@ -381,26 +366,25 @@ m.qda <- metrics(qda_tab)
 
 ### glm
 
-```{r, echo=FALSE}
+```{r, include=FALSE}
 glm_fit <- glm(Dropout ~ . , data=dati_trn, family="binomial")
 glm.probs <- predict(glm_fit, newdata= dati_tst,type = "response")
 glm_pred <- ifelse(glm.probs>0.5,1,0)
 calc_class_err(predicted = glm_pred, actual = y_test)
 glm_tab <- table(glm_pred, y_test)
-calc_class_err(predicted = glm_pred, actual = y_test)
 m.glm <- metrics(glm_tab)
 ```
 
 ### glm con soglia ottimizzata
 
-```{r, echo=FALSE}
+```{r, include=FALSE}
 soglia <- seq(0.1, 0.9, by = 0.01)
 f1_scores <- numeric(length(soglia))
 
 for (i in seq_along(soglia)) {
   pred <- ifelse(glm.probs > soglia[i], 1, 0)
   cm <- table(y_test, pred)
-  f1_scores[i] <- f1_score(cm)
+  f1_scores[i] <- metrics(cm)["F1_score"]
 }
 
 soglia_opt <- soglia[which.max(f1_scores)]
@@ -427,46 +411,78 @@ m.tree=metrics(tree_tab)
 calc_class_err(predicted = tree.pred, actual = y_test)
 ```
 
-# Evaluation
+### Random forest
 
-```{r, echo=FALSE}
-tab <- cbind(Error = c(calc_class_err(lda_tst_pred, y_test), calc_class_err(qda_tst_pred, y_test), 
-      calc_class_err(glm_pred, y_test), calc_class_err(glm_pred_opt, y_test),
-      calc_class_err(tree.pred, y_test)))
-met <- rbind(m.lda, m.qda, m.glm, m.opt, m.tree)
-rownames(tab) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE")
-rownames(met) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE")
-cbind(tab,met)
-```
-
-```{r message=FALSE, echo=FALSE}
-roc_obj <- roc(y_test, glm.probs)
-plot(roc_obj, col="blue", main="Curva ROC: glm vs QDA vs LDA")
-auc(roc_obj)
-
-qda_probs <- predict(mod_qda, dati_tst)$posterior[,2]
-roc_qda <- roc(y_test, qda_probs)
-plot(roc_qda, col="red", add=TRUE)
-auc(roc_qda)
-
-lda_probs <- predict(mod_lda, dati_tst)$posterior[,2]
-roc_lda <- roc(y_test, lda_probs)
-plot(roc_lda, col="green", add = T)
-auc(roc_lda)
-
-legend("topright", c("glm", "QDA", "LDA"), col=c("blue","red","green"), lty=1, lwd=3)
-```
-
-# Approfondimento
-
-```{r echo=FALSE}
+```{r include=FALSE}
 rf_model <- randomForest(Dropout ~ ., data=dati_trn, ntree=200)
 rf_pred <- predict(rf_model, dati_tst)
 tab_rf <- table(rf_pred, y_test)
 calc_class_err(rf_pred, y_test) 
-metrics(tab_rf)
+m.rf = metrics(tab_rf)
+
+```
+
+# Evaluation
+
+```{r, echo=FALSE}
+tab <- cbind(Error = c(calc_class_err(lda_tst_pred, y_test), calc_class_err(qda_tst_pred, y_test), 
+                       calc_class_err(glm_pred, y_test), calc_class_err(glm_pred_opt, y_test),
+                       calc_class_err(tree.pred, y_test), calc_class_err(rf_pred, y_test)))
+
+met <- rbind(m.lda, m.qda, m.glm, m.opt, m.tree, m.rf)
+
+rownames(tab) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE", "Random Forest")
+rownames(met) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE", "Random Forest")
+cbind(tab,met)
+```
+```{r, include=FALSE}
+roc = function(y, pred, soglia = seq(0,1,0.001)){
+  y = as.numeric(y)-1
+  TPR = numeric(length(soglia))
+  FPR = numeric(length(soglia))
+  for(i in 1:length(soglia)){
+    y_pred = ifelse(pred>=soglia[i], 1,0)
+    TP <- sum(y == 1 & y_pred == 1)    
+    FP <- sum(y == 0 & y_pred == 1)
+    FN <- sum(y == 1 & y_pred == 0)
+    TN <- sum(y == 0 & y_pred == 0)
+    TPR[i] <- TP / (TP + FN)
+    FPR[i] <- FP / (FP + TN)}
+  data.frame(TPR,FPR)
+}
+
+auc = function(roc_res){
+  a = 0
+  for(i in 1:(nrow(roc_res)-1)){
+    a = a - ((roc_res$FPR[i+1]-roc_res$FPR[i])*(roc_res$TPR[i+1]+roc_res$TPR[i])/2)}
+  round(a,4)
+}
+```
+
+```{r message=FALSE, echo=FALSE}
+roc_glm <- roc(y_test, glm.probs)
+plot(roc_glm$FPR, roc_glm$TPR, type="l", col="blue",xlim=c(0,1), ylim=c(0,1),
+     xlab="False Positive Rate", ylab="True Positive Rate",
+     main="Curva ROC")
+abline(0,1,lty=2, col="gray")
+auc_glm=auc(roc_glm)
+
+qda_probs <- predict(mod_qda, dati_tst)$posterior[,2]
+roc_qda <- roc(y_test, qda_probs)
+lines(roc_qda$FPR, roc_qda$TPR, col="red")
+auc_qda=auc(roc_qda)
+
+lda_probs <- predict(mod_lda, dati_tst)$posterior[,2]
+roc_lda <- roc(y_test, lda_probs)
+lines(roc_lda$FPR, roc_lda$TPR, col="green")
+auc_lda=auc(roc_lda)
+
 rf_probs <- predict(rf_model, dati_tst, type = "prob")[,2]
 roc_rf <- roc(y_test, rf_probs)
-plot(roc_rf, col="red")
-auc(roc_rf)
+lines(roc_rf$FPR, roc_rf$TPR, type="l", col="black",xlim=c(0,1), ylim=c(0,1))
+auc_rf=auc(roc_rf)
+
+auc_res = list(auc_glm, auc_qda,auc_lda,auc_rf)
+
+legend("bottomright", paste(c("GLM", "QDA", "LDA", "RF"), "- AUC:", auc_res), , col=c("blue","red","green", "black"), lty=1, lwd=3)
 ```

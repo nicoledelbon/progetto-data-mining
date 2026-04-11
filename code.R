@@ -38,10 +38,6 @@ data <- data[, (names(data) %in% c("Family_Income", "Internet_Access",
                                    "Travel_Time_Minutes","Part_Time_Job",
                                    "Stress_Index","GPA","Dropout"))]
 
-                                   
-                                   "Travel_Time_Minutes","Part_Time_Job",]
-
-
 data_numeric <- data_numeric[, names(data_numeric) %in% c("Family_Income", "Attendance_Rate",
                                                           "Assignment_Delay_Days", "Travel_Time_Minutes",
                                                           "Stress_Index","GPA")]
@@ -217,7 +213,6 @@ data_imp <- mice(data, method = "cart", predictorMatrix = my_predictorMatrix, se
 
 densityplot(data_imp)
 
-<<<<<<< HEAD
 observed <- data$Family_Income[!is.na(data$Family_Income)]
 
 dev <- sapply(1:5, function(i){
@@ -380,8 +375,3 @@ lines(roc_rf$FPR, roc_rf$TPR, type="l", col="black",xlim=c(0,1), ylim=c(0,1))
 auc(roc_rf) # 0.8192
 
 legend("topright", c("glm", "QDA", "LDA", "RF"), col=c("blue","red","green", "black"), lty=1, lwd=3)
-=======
-par(mfrow)
-densityplot(data$Family_Income)
-
->>>>>>> b5f93a32da98a8187ed3f0fe69308acddd970468
