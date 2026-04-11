@@ -15,9 +15,9 @@ I dati riproducono fedelmente le distribuzioni reali degli studenti, mantenendo 
 Poichè il dataset include valori mancanti e asimmetrie è necessario gestire questi valori.
 
 Abbiamo porvato a fare imputazione dei dati tramite tre metodi principali: 
-*media  
-*pmm  
-*cart.
+* media  
+* pmm  
+* cart.
 
 
 
