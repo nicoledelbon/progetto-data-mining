@@ -253,6 +253,8 @@ library(mice)
 my_training1 <- mice(train_ov, method = "pmm", predictorMatrix = my_predictorMatrix, seed = 1234, printFlag = FALSE)
 my_training2 <- mice(train_ov, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
 my_training3 <- mice(train_ov, method = "norm", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
+my_training3 <- mice(train_ov, method = "cart", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
+
 
 model1 <- glm.mids(Dropout ~ ., family="binomial", data = my_training1)
 model2 <- glm.mids(Dropout ~ ., family="binomial", data = my_training2)
@@ -298,7 +300,7 @@ f1
 
 rm(list=ls())
 
-student_dropout_dataset_v3 <- read.csv("~/progetto-data-mining/student_dropout_dataset_v3.csv")
+student_dropout_dataset_v3 <- read.csv("student_dropout_dataset_v3.csv")
 
 metrics <- function(cm) {
   TP <- cm[2,2]

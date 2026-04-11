@@ -6,6 +6,12 @@ output:
     toc_float: true
 ---
 
+# Modelli di classificazione per la performance degli studenti
+Nel seguente elaborato si intende prevedere l'abbandono scolastico utilzzando caratteristiche accademiche, demografiche e coportamentali. L'analisi è stata condotta tramite il software R, utilizzando il dataset "Student Dropout Prediction Datset" presente su Kaggle, costituito da una simulazione relativa a 10000 studenti.
+I dati riproducono fedelmente le distribuzioni reali degli studenti, mantenendo asimmetrie, valori mancanti in alcune osservazioni e correlazioni tra esse.
+
+
+
 ```{r include=FALSE}
 library("visdat")
 library("naniar")
@@ -53,7 +59,6 @@ for(i in 1:(ncol(data_numeric)-1)){
 }
 par(mfrow=c(1,1))
 ```
-
 
 ```{r, echo=FALSE}
 vis_miss(data)
@@ -313,9 +318,8 @@ dati <- complete(data_imp, 1)
 ```
 
 # Modelling
-Voglio prevedere l'abbandono o meno di uno studente. Per fare ciò, eseguo una classificazione dei dati in base alla variabile Dropout. Se ottengo 0 significa che lo studente proseguirà i suoi studi, 1 invece indica l'abbandono.
-Decido di selezionare il primo set di dati ottenuto dalla prima imputazione (?).
-Divido i dati nuovamente in test e train, e valuto il miglior modello di classificazione.
+
+Voglio prevedere l'abbandono o meno di uno studente. Per fare ciò, eseguo una classificazione dei dati in base alla variabile Dropout. Se ottengo 0 significa che lo studente proseguirà i suoi studi, 1 invece indica l'abbandono. Decido di selezionare il primo set di dati ottenuto dalla prima imputazione (?). Divido i dati nuovamente in test e train, e valuto il miglior modello di classificazione.
 
 ```{r, include=FALSE}
 set.seed(1)
@@ -342,6 +346,7 @@ ggpairs(dati_trn_num[,-8], aes(color = as.factor(dati_trn_num$Dropout)))
 ```
 
 ### LDA
+
 ```{r, echo=FALSE}
 mod_lda = lda(Dropout ~ ., data = dati_trn) 
 lda_tst_pred = predict(mod_lda, dati_tst)$class
@@ -351,7 +356,9 @@ table(predicted = lda_tst_pred, actual = y_test)
 lda_tab <- table(predicted = lda_tst_pred, actual = y_test)
 m.lda <- metrics(lda_tab)
 ```
+
 ### QDA
+
 ```{r, echo=FALSE}
 mod_qda = qda(Dropout ~ ., data = dati_trn) 
 qda_tst_pred = predict(mod_qda, dati_tst)$class
@@ -360,7 +367,9 @@ qda_tab <- table(predicted = qda_tst_pred, actual = y_test)
 m.qda <- metrics(qda_tab)
 
 ```
+
 ### glm
+
 ```{r, echo=FALSE}
 glm_fit <- glm(Dropout ~ . , data=dati_trn, family="binomial")
 glm.probs <- predict(glm_fit, newdata= dati_tst,type = "response")
@@ -370,7 +379,9 @@ glm_tab <- table(glm_pred, y_test)
 calc_class_err(predicted = glm_pred, actual = y_test)
 m.glm <- metrics(glm_tab)
 ```
+
 ### glm con soglia ottimizzata
+
 ```{r, echo=FALSE}
 soglia <- seq(0.1, 0.9, by = 0.01)
 f1_scores <- numeric(length(soglia))
@@ -389,7 +400,9 @@ calc_class_err(predicted = glm_pred_opt, actual = y_test)
 opt_tab <- table(y_test, glm_pred_opt)
 m.opt <- metrics(opt_tab)
 ```
+
 ### Albero decisionale
+
 ```{r, echo=FALSE}
 dati_trn$Dropout <- as.factor(dati_trn$Dropout)
 tree_dati <- tree(Dropout ~ . , data=dati_trn)
@@ -404,6 +417,7 @@ calc_class_err(predicted = tree.pred, actual = y_test)
 ```
 
 # Evaluation
+
 ```{r, echo=FALSE}
 tab <- cbind(Error = c(calc_class_err(lda_tst_pred, y_test), calc_class_err(qda_tst_pred, y_test), 
       calc_class_err(glm_pred, y_test), calc_class_err(glm_pred_opt, y_test),
@@ -433,6 +447,7 @@ legend("topright", c("glm", "QDA", "LDA"), col=c("blue","red","green"), lty=1, l
 ```
 
 # Approfondimento
+
 ```{r echo=FALSE}
 rf_model <- randomForest(Dropout ~ ., data=dati_trn, ntree=200)
 rf_pred <- predict(rf_model, dati_tst)
@@ -444,4 +459,3 @@ roc_rf <- roc(y_test, rf_probs)
 plot(roc_rf, col="red")
 auc(roc_rf)
 ```
-
