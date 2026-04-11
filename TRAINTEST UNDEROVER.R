@@ -35,8 +35,10 @@ summary(data)
 
 # analisi grafica ---------------------------------------------------------
 colnames(data)
-data_numeric <- data[, c("Age","Family_Income", "Study_Hours_per_Day" ,"Attendance_Rate", 
-                         "Travel_Time_Minutes" ,"Stress_Index" , "GPA","Semester_GPA" ,"CGPA", "Dropout")]
+data_numeric <- data[, c("Family_Income",
+                                   "Attendance_Rate","Assignment_Delay_Days",
+                                   "Travel_Time_Minutes","Part_Time_Job",
+                                   "Stress_Index","GPA","Dropout")]
 par(mfrow=c(3,3))
 for(i in 1:(ncol(data_numeric)-1)){
   plot(data_numeric[,i], col=data$Dropout, ylab=colnames(data_numeric)[i],
@@ -168,7 +170,7 @@ for (i in seq_along(models)) {
                        se.fit = TRUE, newdata = test, type = "response")
   single_prediction <- sapply(prediction, `[[`, "fit")
   final_pred <- apply(single_prediction, 1, mean)
-  final_pred_class <- ifelse(final_pred > 0.5, 1, 0)
+  final_pred_class <- ifelse(final_pred > 0.4, 1, 0)
   confusion_matrix <- table(test$Dropout, final_pred_class)
   accuracies[i] <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
   f1[i] <- f1_score(confusion_matrix)
@@ -211,7 +213,7 @@ model3 <- glm.mids(Dropout ~ ., family="binomial", data = my_training3)
 model4 <- glm.mids(Dropout ~ ., family="binomial", data = my_training4)
 
 # Lista dei modelli
-models <- list(model1, model2, model3, model4)
+models_under <- list(model1, model2, model3, model4)
 
 # Lista per salvare le accuracy
 accuracies <- numeric(length(models))
