@@ -204,8 +204,8 @@ m.rf = metrics(tab_rf)
 # confronti under ----------------------------------------------------------------
 
 tab <- cbind(Error = c(calc_class_err(lda_tst_pred, y_test), calc_class_err(qda_tst_pred, y_test), 
-                           calc_class_err(glm_pred, y_test), calc_class_err(glm_pred_opt, y_test),
-                           calc_class_err(tree.pred, y_test), calc_class_err(rf_pred, y_test)))
+                       calc_class_err(glm_pred, y_test), calc_class_err(glm_pred_opt, y_test),
+                       calc_class_err(tree.pred, y_test), calc_class_err(rf_pred, y_test)))
 met <- rbind(m.lda, m.qda, m.glm, m.opt, m.tree, m.rf)
 rownames(tab) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE", "Random Forest")
 rownames(met) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE", "Random Forest")
@@ -302,8 +302,8 @@ m.rf = metrics(tab_rf)
 # confronti under ----------------------------------------------------------------
 
 tab_und <- cbind(Error = c(calc_class_err(lda_tst_pred, y_test), calc_class_err(qda_tst_pred, y_test), 
-                       calc_class_err(glm_pred, y_test), calc_class_err(glm_pred_opt, y_test),
-                       calc_class_err(tree.pred, y_test), calc_class_err(rf_pred, y_test)))
+                           calc_class_err(glm_pred, y_test), calc_class_err(glm_pred_opt, y_test),
+                           calc_class_err(tree.pred, y_test), calc_class_err(rf_pred, y_test)))
 met_und <- rbind(m.lda, m.qda, m.glm, m.opt, m.tree, m.rf)
 rownames(tab_und) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE", "Random Forest")
 rownames(met_und) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE", "Random Forest")
@@ -402,11 +402,10 @@ m.rf = metrics(tab_rf)
 # confronti under ----------------------------------------------------------------
 
 tab_ov <- cbind(Error = c(calc_class_err(lda_tst_pred, y_test), calc_class_err(qda_tst_pred, y_test), 
-                           calc_class_err(glm_pred, y_test), calc_class_err(glm_pred_opt, y_test),
-                           calc_class_err(tree.pred, y_test), calc_class_err(rf_pred, y_test)))
+                          calc_class_err(glm_pred, y_test), calc_class_err(glm_pred_opt, y_test),
+                          calc_class_err(tree.pred, y_test), calc_class_err(rf_pred, y_test)))
 met_ov <- rbind(m.lda, m.qda, m.glm, m.opt, m.tree, m.rf)
 rownames(tab_ov) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE", "Random Forest")
 rownames(met_ov) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE", "Random Forest")
 cbind(tab_ov,met_ov)
-
 
