@@ -82,17 +82,17 @@ model4 <- glm.mids(Dropout ~ ., family="binomial", data = my_training4)
 
 models <- list(model1, model2, model3, model4)
 
-eval = function(models, test){
+eval = function(models, val){
   accuracies <- numeric(length(models))
   f1 <- numeric(length(models))
   
   for (i in seq_along(models)) {
     prediction <- lapply(getfit(models[[i]]), predict, 
-                         se.fit = TRUE, newdata = validation, type = "response")
+                         se.fit = TRUE, newdata = val, type = "response")
     single_prediction <- sapply(prediction, `[[`, "fit")
     final_pred <- apply(single_prediction, 1, mean)
     final_pred_class <- ifelse(final_pred > 0.5, 1, 0)
-    confusion_matrix <- table(validation$Dropout, final_pred_class)
+    confusion_matrix <- table(val$Dropout, final_pred_class)
     accuracies[i] <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
     f1[i] <- f1_score(confusion_matrix)
   }
@@ -112,8 +112,8 @@ train <- complete(imp_train,1)
 imp_train$imp$Family_Income[1,1] #  38419.03
 imp_train$imp$Stress_Index[1,1] #  5.510391
 # imputo nel test o faccio mice?
-test$Family_Income[is.na(test$Family_Income)] <-  38419.03
-test$Stress_Index[is.na(test$Stress_Index)] <-   5.510391
+test$Family_Income[is.na(test$Family_Income)] <-  imp_train$imp$Family_Income[1,1]
+test$Stress_Index[is.na(test$Stress_Index)] <-   imp_train$imp$Stress_Index[1,1]
 
 data0 <- train[train$Dropout==0,]
 data1 <- train[train$Dropout==1,]
@@ -133,7 +133,6 @@ mod_lda = lda(Dropout ~ ., data = dati_trn)
 lda_tst_pred = predict(mod_lda, dati_tst)$class
 calc_class_err(predicted = lda_tst_pred, actual = y_test)
 # 0.183
-table(predicted = lda_tst_pred, actual = y_test)
 lda_tab <- table(predicted = lda_tst_pred, actual = y_test)
 m.lda <- metrics(lda_tab)
 
@@ -159,13 +158,14 @@ calc_class_err(predicted = glm_pred, actual = y_test)
 m.glm <- metrics(glm_tab)
 
 # OTTIMIZZAZIONE SOGLIA-------
-
+glm.probs_val <- predict(glm_fit, newdata=validation, type="response")
+y_val         <- validation[, 9]
 soglia <- seq(0.1, 0.9, by = 0.01)
 f1_scores <- numeric(length(soglia))
 for (i in seq_along(soglia)) {
-  pred <- ifelse(glm.probs > soglia[i], 1, 0)
-  cm <- table(y_test, pred)
-  f1_scores[i] <- metrics(cm)["F1_score"]
+  pred_val <- ifelse(glm.probs_val > soglia[i], 1, 0)
+  cm_val <- table(y_val, pred_val)
+  f1_scores[i] <- metrics(cm_val)["F1_score"]
 }
 soglia_opt <- soglia[which.max(f1_scores)]
 glm_pred_opt <- ifelse(glm.probs > soglia_opt, 1, 0)
