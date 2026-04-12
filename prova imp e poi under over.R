@@ -111,7 +111,7 @@ imp_train <- mice(train, method = "mean", predictorMatrix = my_predictorMatrix, 
 train <- complete(imp_train,1)
 imp_train$imp$Family_Income[1,1] #  38419.03
 imp_train$imp$Stress_Index[1,1] #  5.510391
-# imputo nel test
+# imputo nel test o faccio mice?
 test$Family_Income[is.na(test$Family_Income)] <-  38419.03
 test$Stress_Index[is.na(test$Stress_Index)] <-   5.510391
 
