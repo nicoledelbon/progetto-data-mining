@@ -104,308 +104,98 @@ eval(models,validation)
 
 # mean
 
-p <- dim(train)[2]
+p <- dim(train_rid)[2]
 my_predictorMatrix <- 1 - diag(nrow = p, ncol = p)
 my_predictorMatrix[ ,9] <- 0 
-imp_train <- mice(train, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
-train <- complete(imp_train,1)
-imp_train$imp$Family_Income[1,1] #  38419.03
-imp_train$imp$Stress_Index[1,1] #  5.510391
+imp_train <- mice(train_rid, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
+train_rid <- complete(imp_train,1)
+
 # imputo nel test o faccio mice?
-test$Family_Income[is.na(test$Family_Income)] <-  imp_train$imp$Family_Income[1,1]
-test$Stress_Index[is.na(test$Stress_Index)] <-   imp_train$imp$Stress_Index[1,1]
+validation$Family_Income[is.na(validation$Family_Income)] <- mean(train_rid$Family_Income, na.rm=TRUE)
+validation$Stress_Index[is.na(validation$Stress_Index)] <- mean(train_rid$Stress_Index, na.rm=TRUE)
 
-data0 <- train[train$Dropout==0,]
-data1 <- train[train$Dropout==1,]
+test$Family_Income[is.na(test$Family_Income)] <- mean(train_rid$Family_Income, na.rm=TRUE)
+test$Stress_Index[is.na(test$Stress_Index)] <- mean(train_rid$Stress_Index, na.rm=TRUE)
 
+data0 <- train_rid[train_rid$Dropout==0,]
+data1 <- train_rid[train_rid$Dropout==1,]
 
-# cosi come sono
-
-dati_trn <- train
-dati_tst <- test
-y_test <- dati_tst[, 9]
-
-
-# LDA ---------------------------------------------------------------------
-
-library(MASS)
-mod_lda = lda(Dropout ~ ., data = dati_trn) 
-lda_tst_pred = predict(mod_lda, dati_tst)$class
-calc_class_err(predicted = lda_tst_pred, actual = y_test)
-# 0.183
-lda_tab <- table(predicted = lda_tst_pred, actual = y_test)
-m.lda <- metrics(lda_tab)
-
-
-# QDA ---------------------------------------------------------------------
-mod_qda = qda(Dropout ~ ., data = dati_trn) 
-qda_tst_pred = predict(mod_qda, dati_tst)$class
-calc_class_err(predicted = qda_tst_pred, actual = y_test) 
-# 0.185
-qda_tab <- table(predicted = qda_tst_pred, actual = y_test)
-m.qda <- metrics(qda_tab)
-
-
-# LOGISTICA ---------------------------------------------------------------
-
-glm_fit <- glm(Dropout ~ . , data=dati_trn, family="binomial")
-glm.probs <- predict(glm_fit, newdata= dati_tst,type = "response")
-glm_pred <- ifelse(glm.probs>0.5,1,0)
-calc_class_err(predicted = glm_pred, actual = y_test)
-# 0.1815
-glm_tab <- table(glm_pred, y_test)
-calc_class_err(predicted = glm_pred, actual = y_test)
-m.glm <- metrics(glm_tab)
-
-# OTTIMIZZAZIONE SOGLIA-------
-glm.probs_val <- predict(glm_fit, newdata=validation, type="response")
-y_val         <- validation[, 9]
-soglia <- seq(0.1, 0.9, by = 0.01)
-f1_scores <- numeric(length(soglia))
-for (i in seq_along(soglia)) {
-  pred_val <- ifelse(glm.probs_val > soglia[i], 1, 0)
-  cm_val <- table(y_val, pred_val)
-  f1_scores[i] <- metrics(cm_val)["F1_score"]
+metriche <- list()
+metodi <- c("dati normali", "undersampling", "oversampling")
+for(m in metodi){
+  if(m=="dati normali"){
+    dati_trn <- train_rid
+  }
+  if(m=="undersampling"){
+    set.seed(1)
+    lab <- sample(1:nrow(data0), nrow(data1))
+    dati_trn<- rbind(data0[lab,], data1)
+  }
+  if(m=="oversampling"){
+    set.seed(1)
+    lab <- sample(1:nrow(data1), nrow(data0), replace=T)
+    dati_trn <- rbind(data1[lab,], data0)
+  }
+  
+  dati_tst <- test
+  y_test <- dati_tst$Dropout
+  
+  library(MASS)
+  mod_lda = lda(Dropout ~ ., data = dati_trn) 
+  lda_tst_pred = predict(mod_lda, dati_tst)$class
+  lda_tab <- table(predicted = lda_tst_pred, actual = y_test)
+  m.lda <- unlist(metrics(lda_tab))
+  
+  # QDA ---------------------------------------------------------------------
+  mod_qda = qda(Dropout ~ ., data = dati_trn) 
+  qda_tst_pred = predict(mod_qda, dati_tst)$class
+  qda_tab <- table(predicted = qda_tst_pred, actual = y_test)
+  m.qda <- unlist(metrics(qda_tab))
+  
+  # LOGISTICA ---------------------------------------------------------------
+  glm_fit <- glm(Dropout ~ . , data=dati_trn, family="binomial")
+  glm.probs <- predict(glm_fit, newdata= dati_tst,type = "response")
+  glm_pred <- ifelse(glm.probs>0.5,1,0)
+  glm_tab <- table(glm_pred, y_test)
+  m.glm <- unlist(metrics(glm_tab))
+  
+  # OTTIMIZZAZIONE SOGLIA-------
+  glm.probs_val <- predict(glm_fit, newdata=validation, type="response")
+  y_val <- validation[, 9]
+  soglia <- seq(0.1, 0.9, by = 0.01)
+  f1_scores <- numeric(length(soglia))
+  for (i in seq_along(soglia)) {
+    pred_val <- ifelse(glm.probs_val > soglia[i], 1, 0)
+    cm_val <- table(y_val, pred_val)
+    f1_scores[i] <- metrics(cm_val)$F1_score
+  }
+  soglia_opt <- soglia[which.max(f1_scores)]
+  glm_pred_opt <- ifelse(glm.probs > soglia_opt, 1, 0)
+  opt_tab <- table(y_test, glm_pred_opt)
+  m.opt <- unlist(metrics(opt_tab))
+  
+  # ALBERO ------------------------------------------------------------------
+  library(ISLR)
+  library("tree")
+  dati_trn$Dropout <- as.factor(dati_trn$Dropout)
+  tree_dati <- tree(Dropout ~ . , data=dati_trn)
+  summary(tree_dati)
+  tree.pred <- predict(tree_dati , dati_tst , type = "class")
+  tree_tab = table(tree.pred , y_test)
+  m.tree=unlist(metrics(tree_tab))
+  
+  # RANDOM FOREST -----------------------------------------------------------
+  library(randomForest)
+  rf_model <- randomForest(Dropout ~ ., data=dati_trn, ntree=200)
+  rf_pred <- predict(rf_model, dati_tst)
+  tab_rf <- table(rf_pred, y_test)
+  m.rf = unlist(metrics(tab_rf))
+  
+  tab <- cbind(Error = c(calc_class_err(lda_tst_pred, y_test), calc_class_err(qda_tst_pred, y_test), 
+                         calc_class_err(glm_pred, y_test), calc_class_err(glm_pred_opt, y_test),
+                         calc_class_err(tree.pred, y_test), calc_class_err(rf_pred, y_test)))
+  met <- rbind(m.lda, m.qda, m.glm, m.opt, m.tree, m.rf)
+  rownames(tab) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE", "Random Forest")
+  rownames(met) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE", "Random Forest")
+  metriche[[m]] <- cbind(tab,met)
 }
-soglia_opt <- soglia[which.max(f1_scores)]
-glm_pred_opt <- ifelse(glm.probs > soglia_opt, 1, 0)
-table(glm_pred_opt, y_test)
-calc_class_err(predicted = glm_pred_opt, actual = y_test)
-#0.2075
-opt_tab <- table(y_test, glm_pred_opt)
-m.opt <- metrics(opt_tab)
-
-# ALBERO ------------------------------------------------------------------
-library(ISLR)
-library("tree")
-dati_trn$Dropout <- as.factor(dati_trn$Dropout)
-tree_dati <- tree(Dropout ~ . , data=dati_trn)
-summary(tree_dati)
-tree.pred <- predict(tree_dati , dati_tst , type = "class")
-tree_tab = table(tree.pred , y_test)
-m.tree=metrics(tree_tab)
-calc_class_err(predicted = tree.pred, actual = y_test)
-# 0.195
-
-
-
-
-# RANDOM FOREST -----------------------------------------------------------
-
-library(randomForest)
-rf_model <- randomForest(Dropout ~ ., data=dati_trn, ntree=200)
-rf_pred <- predict(rf_model, dati_tst)
-tab_rf <- table(rf_pred, y_test)
-calc_class_err(rf_pred, y_test) 
-# 0.1965
-m.rf = metrics(tab_rf)
-# risultati altissimi; mostra un modello molto significativo
-
-# confronti under ----------------------------------------------------------------
-
-tab <- cbind(Error = c(calc_class_err(lda_tst_pred, y_test), calc_class_err(qda_tst_pred, y_test), 
-                       calc_class_err(glm_pred, y_test), calc_class_err(glm_pred_opt, y_test),
-                       calc_class_err(tree.pred, y_test), calc_class_err(rf_pred, y_test)))
-met <- rbind(m.lda, m.qda, m.glm, m.opt, m.tree, m.rf)
-rownames(tab) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE", "Random Forest")
-rownames(met) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE", "Random Forest")
-cbind(tab,met)
-
-
-
-# under 
-set.seed(1)
-lab <- sample(1:nrow(data0), nrow(data1))
-train_und <- rbind(data0[lab,], data1)
-
-table(train_und$Dropout)
-
-dati_trn <- train_und
-dati_tst <- test
-y_test <- dati_tst[, 9]
-
-
-# LDA ---------------------------------------------------------------------
-
-library(MASS)
-mod_lda = lda(Dropout ~ ., data = dati_trn) 
-lda_tst_pred = predict(mod_lda, dati_tst)$class
-calc_class_err(predicted = lda_tst_pred, actual = y_test)
-#  0.27
-table(predicted = lda_tst_pred, actual = y_test)
-lda_tab <- table(predicted = lda_tst_pred, actual = y_test)
-m.lda <- metrics(lda_tab)
-
-
-# QDA ---------------------------------------------------------------------
-mod_qda = qda(Dropout ~ ., data = dati_trn) 
-qda_tst_pred = predict(mod_qda, dati_tst)$class
-calc_class_err(predicted = qda_tst_pred, actual = y_test) 
-# 0.2775
-qda_tab <- table(predicted = qda_tst_pred, actual = y_test)
-m.qda <- metrics(qda_tab)
-
-
-# LOGISTICA ---------------------------------------------------------------
-
-glm_fit <- glm(Dropout ~ . , data=dati_trn, family="binomial")
-glm.probs <- predict(glm_fit, newdata= dati_tst,type = "response")
-glm_pred <- ifelse(glm.probs>0.5,1,0)
-calc_class_err(predicted = glm_pred, actual = y_test)
-# 0.2645
-glm_tab <- table(glm_pred, y_test)
-calc_class_err(predicted = glm_pred, actual = y_test)
-m.glm <- metrics(glm_tab)
-
-# OTTIMIZZAZIONE SOGLIA-------
-
-soglia <- seq(0.1, 0.9, by = 0.01)
-f1_scores <- numeric(length(soglia))
-for (i in seq_along(soglia)) {
-  pred <- ifelse(glm.probs > soglia[i], 1, 0)
-  cm <- table(y_test, pred)
-  f1_scores[i] <- metrics(cm)["F1_score"]
-}
-soglia_opt <- soglia[which.max(f1_scores)]
-glm_pred_opt <- ifelse(glm.probs > soglia_opt, 1, 0)
-table(glm_pred_opt, y_test)
-calc_class_err(predicted = glm_pred_opt, actual = y_test)
-# 0.204
-opt_tab <- table(y_test, glm_pred_opt)
-m.opt <- metrics(opt_tab)
-
-# ALBERO ------------------------------------------------------------------
-library(ISLR)
-library("tree")
-dati_trn$Dropout <- as.factor(dati_trn$Dropout)
-tree_dati <- tree(Dropout ~ . , data=dati_trn)
-summary(tree_dati)
-tree.pred <- predict(tree_dati , dati_tst , type = "class")
-tree_tab = table(tree.pred , y_test)
-m.tree=metrics(tree_tab)
-calc_class_err(predicted = tree.pred, actual = y_test)
-#  0.244
-
-
-
-# RANDOM FOREST -----------------------------------------------------------
-
-library(randomForest)
-rf_model <- randomForest(Dropout ~ ., data=dati_trn, ntree=200)
-rf_pred <- predict(rf_model, dati_tst)
-tab_rf <- table(rf_pred, y_test)
-calc_class_err(rf_pred, y_test) 
-# 0.2715
-m.rf = metrics(tab_rf)
-# risultati altissimi; mostra un modello molto significativo
-
-# confronti under ----------------------------------------------------------------
-
-tab_und <- cbind(Error = c(calc_class_err(lda_tst_pred, y_test), calc_class_err(qda_tst_pred, y_test), 
-                           calc_class_err(glm_pred, y_test), calc_class_err(glm_pred_opt, y_test),
-                           calc_class_err(tree.pred, y_test), calc_class_err(rf_pred, y_test)))
-met_und <- rbind(m.lda, m.qda, m.glm, m.opt, m.tree, m.rf)
-rownames(tab_und) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE", "Random Forest")
-rownames(met_und) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE", "Random Forest")
-cbind(tab_und,met_und)
-
-
-# over
-
-
-set.seed(1)
-lab <- sample(1:nrow(data1), nrow(data0), replace=T)
-train_ov <- rbind(data1[lab,], data0)
-
-
-table(train_ov$Dropout)
-
-dati_trn <- train_ov
-dati_tst <- test
-y_test <- dati_tst[, 9]
-
-
-# LDA ---------------------------------------------------------------------
-
-library(MASS)
-mod_lda = lda(Dropout ~ ., data = dati_trn) 
-lda_tst_pred = predict(mod_lda, dati_tst)$class
-calc_class_err(predicted = lda_tst_pred, actual = y_test)
-#  0.2625
-table(predicted = lda_tst_pred, actual = y_test)
-lda_tab <- table(predicted = lda_tst_pred, actual = y_test)
-m.lda <- metrics(lda_tab)
-
-
-# QDA ---------------------------------------------------------------------
-mod_qda = qda(Dropout ~ ., data = dati_trn) 
-qda_tst_pred = predict(mod_qda, dati_tst)$class
-calc_class_err(predicted = qda_tst_pred, actual = y_test) 
-# 0.275
-qda_tab <- table(predicted = qda_tst_pred, actual = y_test)
-m.qda <- metrics(qda_tab)
-
-
-# LOGISTICA ---------------------------------------------------------------
-
-glm_fit <- glm(Dropout ~ . , data=dati_trn, family="binomial")
-glm.probs <- predict(glm_fit, newdata= dati_tst,type = "response")
-glm_pred <- ifelse(glm.probs>0.5,1,0)
-calc_class_err(predicted = glm_pred, actual = y_test)
-# 0.261
-glm_tab <- table(glm_pred, y_test)
-calc_class_err(predicted = glm_pred, actual = y_test)
-m.glm <- metrics(glm_tab)
-
-# OTTIMIZZAZIONE SOGLIA-------
-
-soglia <- seq(0.1, 0.9, by = 0.01)
-f1_scores <- numeric(length(soglia))
-for (i in seq_along(soglia)) {
-  pred <- ifelse(glm.probs > soglia[i], 1, 0)
-  cm <- table(y_test, pred)
-  f1_scores[i] <- metrics(cm)["F1_score"]
-}
-soglia_opt <- soglia[which.max(f1_scores)]
-glm_pred_opt <- ifelse(glm.probs > soglia_opt, 1, 0)
-table(glm_pred_opt, y_test)
-calc_class_err(predicted = glm_pred_opt, actual = y_test)
-# 0.2025
-opt_tab <- table(y_test, glm_pred_opt)
-m.opt <- metrics(opt_tab)
-
-# ALBERO ------------------------------------------------------------------
-library(ISLR)
-library("tree")
-dati_trn$Dropout <- as.factor(dati_trn$Dropout)
-tree_dati <- tree(Dropout ~ . , data=dati_trn)
-summary(tree_dati)
-tree.pred <- predict(tree_dati , dati_tst , type = "class")
-tree_tab = table(tree.pred , y_test)
-m.tree=metrics(tree_tab)
-calc_class_err(predicted = tree.pred, actual = y_test)
-#  0.2955
-
-
-
-# RANDOM FOREST -----------------------------------------------------------
-
-library(randomForest)
-rf_model <- randomForest(Dropout ~ ., data=dati_trn, ntree=200)
-rf_pred <- predict(rf_model, dati_tst)
-tab_rf <- table(rf_pred, y_test)
-calc_class_err(rf_pred, y_test) 
-# 0.2085
-m.rf = metrics(tab_rf)
-# risultati altissimi; mostra un modello molto significativo
-
-# confronti under ----------------------------------------------------------------
-
-tab_ov <- cbind(Error = c(calc_class_err(lda_tst_pred, y_test), calc_class_err(qda_tst_pred, y_test), 
-                          calc_class_err(glm_pred, y_test), calc_class_err(glm_pred_opt, y_test),
-                          calc_class_err(tree.pred, y_test), calc_class_err(rf_pred, y_test)))
-met_ov <- rbind(m.lda, m.qda, m.glm, m.opt, m.tree, m.rf)
-rownames(tab_ov) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE", "Random Forest")
-rownames(met_ov) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE", "Random Forest")
-cbind(tab_ov,met_ov)
-
