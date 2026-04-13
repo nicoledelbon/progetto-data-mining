@@ -8,16 +8,6 @@ fattori <- c("Gender","Internet_Access","Semester","Department",
 data[fattori] <- lapply(data[fattori], as.factor)
 summary(data)
 
-colnames(data)
-data_numeric <- data[, c("Age","Family_Income", "Study_Hours_per_Day" ,"Attendance_Rate","Assignment_Delay_Days",
-                         "Travel_Time_Minutes" ,"Stress_Index" , "GPA","Semester_GPA" ,"CGPA")]
-
-data <- data[, (names(data) %in% c("Family_Income", "Internet_Access",
-                                   "Attendance_Rate","Assignment_Delay_Days",
-                                   
-                                   "Travel_Time_Minutes","Part_Time_Job",
-                                   "Stress_Index","GPA","Dropout"))]
-
 f1_score <- function(cm) {
   TP <- cm[2,2]
   FP <- cm[1,2]
@@ -54,6 +44,36 @@ metrics <- function(cm) {
     F1_score = f1
   ))
 }
+
+data_numeric <- data[, c("Age","Family_Income", "Study_Hours_per_Day" ,"Attendance_Rate","Assignment_Delay_Days",
+                         "Travel_Time_Minutes" ,"Stress_Index" , "GPA","Semester_GPA" ,"CGPA")]
+par(mfrow=c(2,5))
+for(i in 1:ncol(data_numeric)){
+  boxplot(data_numeric[,i] ~ data$Dropout, col=c("green", "red"), ylab=colnames(data_numeric)[i],
+          main="", pch=16)
+}
+par(mfrow=c(1,1))
+
+vis_miss(data)
+gg_miss_var(data)
+md.pattern(data)
+
+cor <- cor(data_numeric, use="complete.obs")
+ggcorrplot(cor, lab=T, hc.order=T)
+
+mfull <- glm(Dropout ~ . , data=data, family="binomial")
+mnull <- glm(Dropout ~ 1 , data=data, family="binomial")
+step(mfull, mnull)
+
+data <- data[, (names(data) %in% c("Family_Income", "Internet_Access",
+                                   "Attendance_Rate","Assignment_Delay_Days",
+                                   
+                                   "Travel_Time_Minutes","Part_Time_Job",
+                                   "Stress_Index","GPA","Dropout"))]
+
+data_numeric <- data_numeric[, names(data_numeric) %in% c("Family_Income", "Attendance_Rate",
+                                                          "Assignment_Delay_Days", "Travel_Time_Minutes",
+                                                          "Stress_Index","GPA")]
 
 set.seed(1)
 labels = sample(1:nrow(data), 0.8*nrow(data))
@@ -109,6 +129,9 @@ my_predictorMatrix <- 1 - diag(nrow = p, ncol = p)
 my_predictorMatrix[ ,9] <- 0 
 imp_train <- mice(train_rid, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
 train_rid <- complete(imp_train,1)
+
+densityplot(imp_train)
+
 
 # imputo nel test o faccio mice?
 validation$Family_Income[is.na(validation$Family_Income)] <- mean(train_rid$Family_Income, na.rm=TRUE)
@@ -199,3 +222,53 @@ for(m in metodi){
   rownames(met) <- c("LDA", "QDA", "GLM", "GLM_OPT", "TREE", "Random Forest")
   metriche[[m]] <- cbind(tab,met)
 }
+
+metriche 
+
+roc = function(y, pred, soglia = seq(0,1,0.001)){
+  y = as.numeric(y)-1
+  TPR = numeric(length(soglia))
+  FPR = numeric(length(soglia))
+  for(i in 1:length(soglia)){
+    y_pred = ifelse(pred>=soglia[i], 1,0)
+    TP <- sum(y == 1 & y_pred == 1)    
+    FP <- sum(y == 0 & y_pred == 1)
+    FN <- sum(y == 1 & y_pred == 0)
+    TN <- sum(y == 0 & y_pred == 0)
+    TPR[i] <- TP / (TP + FN)
+    FPR[i] <- FP / (FP + TN)}
+  data.frame(TPR,FPR)
+}
+
+auc = function(roc_res){
+  a = 0
+  for(i in 1:(nrow(roc_res)-1)){
+    a = a - ((roc_res$FPR[i+1]-roc_res$FPR[i])*(roc_res$TPR[i+1]+roc_res$TPR[i])/2)}
+  round(a,4)
+}
+
+roc_glm <- roc(y_test, glm.probs)
+plot(roc_glm$FPR, roc_glm$TPR, type="l", col="blue",xlim=c(0,1), ylim=c(0,1),
+     xlab="False Positive Rate", ylab="True Positive Rate",
+     main="Curva ROC")
+abline(0,1,lty=2, col="gray")
+auc_glm=auc(roc_glm)
+
+qda_probs <- predict(mod_qda, dati_tst)$posterior[,2]
+roc_qda <- roc(y_test, qda_probs)
+lines(roc_qda$FPR, roc_qda$TPR, col="red")
+auc_qda=auc(roc_qda)
+
+lda_probs <- predict(mod_lda, dati_tst)$posterior[,2]
+roc_lda <- roc(y_test, lda_probs)
+lines(roc_lda$FPR, roc_lda$TPR, col="green")
+auc_lda=auc(roc_lda)
+
+rf_probs <- predict(rf_model, dati_tst, type = "prob")[,2]
+roc_rf <- roc(y_test, rf_probs)
+lines(roc_rf$FPR, roc_rf$TPR, type="l", col="black",xlim=c(0,1), ylim=c(0,1))
+auc_rf=auc(roc_rf)
+
+auc_res = list(auc_glm, auc_qda,auc_lda,auc_rf)
+
+legend("bottomright", paste(c("GLM", "QDA", "LDA", "RF"), "- AUC:", auc_res), , col=c("blue","red","green", "black"), lty=1, lwd=3)
