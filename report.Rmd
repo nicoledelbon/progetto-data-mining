@@ -7,8 +7,9 @@ output:
 ---
 
 # Modelli di classificazione per la performance degli studenti
-
-Nel seguente elaborato si intende prevedere l'abbandono scolastico utilizzando caratteristiche accademiche, demografiche e comportamentali degli studenti. L'analisi è stata condotta tramite il software R, utilizzando il dataset "Student Dropout Prediction Dataset" presente su Kaggle, costituito da una simulazione relativa a 10000 studenti. I dati, infatti, riproducono fedelmente le distribuzioni reali degli studenti, mantenendo asimmetrie, valori mancanti in alcune osservazioni e correlazioni tra esse. L’obiettivo di questo progetto è individuare il miglior modello che, date alcune caratteristiche dello studente, sia in grado di prevedere se esso completerà o meno gli studi. La nostra analisi ha lo scopo di prevedere se uno studente abbandoni il ciclo di studi prima
+L’Università degli Studi di Milano Centrale ha condotto un’analisi volta a individuare i principali fattori che influenzano l’abbandono dei corsi universitari. In tale contesto, è stato affidato il presente progetto con l’obiettivo di sviluppare un modello di classificazione in grado di prevedere, sulla base di caratteristiche accademiche, demografiche e comportamentali  degli studenti, la probabilità di abbandono del percorso di studi. 
+L'analisi è stata condotta tramite il software R, utilizzando il dataset "Student Dropout Prediction Dataset" disponibile su Kaggle, costruito su una simulazione relativa a 10000 studenti.
+I dati, infatti, riproducono fedelmente le distribuzioni reali degli studenti, mantenendo asimmetrie, valori mancanti in alcune osservazioni e correlazioni tra esse. L’obiettivo di questo progetto è individuare il miglior modello che, date alcune caratteristiche dello studente, sia in grado di prevedere se esso completerà o meno gli studi. La nostra analisi ha lo scopo di prevedere se uno studente abbandoni il ciclo di studi prima
 
 ```{r include=FALSE}
 library("visdat")
@@ -20,6 +21,7 @@ library(MASS)
 library(ISLR)
 library("tree")
 library(randomForest)
+library(gridExtra)
 ```
 
 ```{r include=FALSE}
@@ -62,6 +64,8 @@ Le variabili prese in esame sono:
 
 -   Dropout: variabile target, (0 = retained, 1 = dropped out)
 
+La variabile identificativa ID è stata rimossa in quanto non informativa ai fini predittivi, mentre le variabili categoriche sono state opportunamente convertite in fattori.
+
 ```{r include=FALSE}
 data <- student_dropout_dataset_v3[,-1]
 fattori <- c("Gender","Internet_Access","Semester","Department",
@@ -74,7 +78,11 @@ data[fattori] <- lapply(data[fattori], as.factor)
 summary(data)
 ```
 
-Ho dei valori mancanti nelle variabili Family_Income (dato sensibile), Study_Hours_per_Day e Stress_index. I range di variazione delle variabili sono coerenti con le variabili in esame.
+Dall’analisi preliminare del campo di variazione delle variabili non emergono valori anomali.
+
+Ho dei valori mancanti nelle variabili Family_Income, Study_Hours_per_Day e Stress_index. I range di variazione delle variabili sono coerenti con le variabili in esame.
+
+L’analisi tramite boxplot è utile al fine di confrontare la distribuzione delle variabili esplicative numeriche condizionatamente alla variabile risposta (Dropout), permettendo di evidenziare eventuali differenze tra i gruppi.
 
 ```{r echo=FALSE}
 data_numeric <- data[, c("Age","Family_Income", "Study_Hours_per_Day" ,"Attendance_Rate","Assignment_Delay_Days",
@@ -88,12 +96,30 @@ par(mfrow=c(1,1))
 
 ```
 
-```{r, echo=FALSE}
-vis_miss(data)
-gg_miss_var(data)
+Data la forte asimmetria della variabile Family_Income, ci è sembrato opportuno normalizzare la variabile.
+
+```{r, include=FALSE}
+min <- min(data$Family_Income, na.rm = T)
+max <- max(data$Family_Income, na.rm = T)
+
+data$Family_Income[!is.na(data$Family_Income)] <- (data$Family_Income[!is.na(data$Family_Income)]-min)/(max-min)
+summary(data$Family_Income)
+```
+
+Successivamente è stata effettuata un'analisi dei valori mancanti, con l’obiettivo di verificarne la presenza, quantificarne l’entità e individuare eventuali pattern o correlazioni tra essi.
+
+Dai grafici emerge che solo lo 0.8% dei dati risulta essere mancante.
+
+```{r echo=FALSE}
 md.pattern(data)
+p1 <- vis_miss(data)
+p2 <- gg_miss_var(data)
+grid.arrange(p1, p2, ncol=2)
+
 
 ```
+
+Infine, è stata analizzata la correlazione tra le variabili numeriche al fine di individuare eventuali relazioni lineari e possibili fenomeni di multicollinearità.
 
 ```{r, include=FALSE}
 cor <- cor(data_numeric, use="complete.obs")
@@ -103,6 +129,12 @@ cor <- cor(data_numeric, use="complete.obs")
 ```{r echo=FALSE, warning=FALSE}
 ggcorrplot(cor, lab=T, hc.order=T)
 ```
+
+## Preparation
+
+Data la forte correlazione tra alcune variabili, è stato necessario procedere tramite selezione back-wise delle variabili.
+
+Le variabili significative sono risultate Family_Income, Internet_Access, Attendance_Rate, Assignment_Delay_Days, Travel_Time_Minutes, Part_Time_Job, Stress_Index e GPA.
 
 ```{r, include=FALSE}
 mfull <- glm(Dropout ~ . , data=data, family="binomial")
@@ -121,18 +153,31 @@ data_numeric <- data_numeric[, names(data_numeric) %in% c("Family_Income", "Atte
 
 ```
 
-## Preparation
-
 ### Imputazione dei missing values
 
-Poichè il dataset include valori mancanti e asimmetrie è necessario gestire questi valori.
+Poichè il dataset include valori mancanti, si è ritenuto opportuno procedere con tecniche di imputazione.
 
-Abbiamo porvato a fare imputazione dei dati tramite tre metodi principali:
+Sono stati considerati diverse metodi, in particolare:
 
--   media
--   pmm
--   cart
--   lasso-norm
+-   Mean: i missing vengono sostituiti con la media della variabile, riducendo la variabilità dei dati;
+
+-   PMM: modello semi-parametrico che imputa valori selezionandoli da osservazioni simili, preservando la distribuzione originale;
+
+-   Lasso norm: utilizza relazioni lineari tra le variabili per stimare i valori mancanti
+
+-   Cart: metodo basato su alberi decisionali che imputano valori mancanti sfruttando relazioni non lineari tra le variabili
+
+Per procedere con le analisi, è stato effettuato uno split tra training e test set.
+
+```{r, include=FALSE}
+set.seed(1)
+labels = sample(1:nrow(data), 0.8*nrow(data))
+train = data[labels,]
+test = data[-labels,]
+
+```
+
+Per individuare il migliore metodo di imputazione, è stato necessario dividere ulteriormente il training set per ricavare il validation set sul quale calcolare le metriche di valutazione, ovvero accuracy e f1 score.
 
 ```{r}
 f1_score <- function(cm) {
@@ -146,14 +191,6 @@ f1_score <- function(cm) {
   f1 <- 2 * precision * recall / (precision + recall)
   return(f1)
 }
-
-```
-
-```{r, include=FALSE}
-set.seed(1)
-labels = sample(1:nrow(data), 0.8*nrow(data))
-train = data[labels,]
-test = data[-labels,]
 
 ```
 
@@ -208,12 +245,7 @@ eval = function(models, test){
 eval(models, validation)
 ```
 
-```{r echo=FALSE}
-table(data$Dropout)  
-
-```
-
-Dai dati originali, vedo che molti studenti completano i loro studi, mentre chi abbandona è in numero minore. Siamo quindi in presenza di dati sbilanciati.
+Il metodo di imputazione migliore risulta essere quello tramite media.
 
 ```{r, include=FALSE}
 p <- dim(train_rid)[2]
@@ -225,10 +257,14 @@ train_rid <- complete(imp_train,1)
 
 ```
 
+I dati imputati sembra cogliere la reale distribuzione delle variabili.
+
 ```{r, echo=FALSE}
 densityplot(imp_train)
 
 ```
+
+Per risolvere il problema dei missing anche nel validation e nel test set, i valori mancanti sono stati sosituiti con i valori attesi delle variabili in esame, riportando di fatto l'imputazione svolta nel training set.
 
 ```{r, include=FALSE}
 validation$Family_Income[is.na(validation$Family_Income)] <- mean(train_rid$Family_Income, na.rm=TRUE)
@@ -239,6 +275,12 @@ test$Stress_Index[is.na(test$Stress_Index)] <- mean(train_rid$Stress_Index, na.r
 
 ```
 
+Dall’analisi della variabile risposta, emerge uno sbilanciamento delle classi, con una prevalenza di studenti che completano gli studi. 
+
+```{r echo=FALSE}
+table(train_rid$Dropout)  
+```
+
 ```{r, include=FALSE}
 data0 <- train_rid[train_rid$Dropout==0,]
 data1 <- train_rid[train_rid$Dropout==1,]
@@ -247,7 +289,31 @@ data1 <- train_rid[train_rid$Dropout==1,]
 
 ## Modelling
 
-Voglio prevedere l'abbandono o meno di uno studente. Per fare ciò, eseguo una classificazione dei dati in base alla variabile Dropout. Se ottengo 0 significa che lo studente proseguirà i suoi studi, 1 invece indica l'abbandono. Decido di selezionare il primo set di dati ottenuto dalla prima imputazione (?). Divido i dati nuovamente in test e train, e valuto il miglior modello di classificazione.
+Per affrontare questo problema sono state considerate tre strategie:
+
+-   dati originali
+
+-   undersampling 
+
+-   oversampling
+
+Abbiamo provato ad eseguire diversi metodi di classificazione sui dati originali, sui dati soggetti ad undersampling e oversampling. 
+
+Ci aspettiamo che i metodi di resampling aiutino il modello nella classificazione della classe minoritaria.
+
+Al fine di confrontare le performance, sono stati considerati diversi modelli di classificazione:
+
+-   LDA : modello lineare che assume distribuzioni gaussiane per le variabili e uguale matrice di covarianza tra le classi;
+
+-   QDA: modello quadratico che assume distribuzioni gaussiane e matrici di covarianza diverse tra le classi, permettendo frontiere di decisionali non lineari;
+
+-   Regressione logistica: modello probabilistico utilizzato per la classificazione binaria;
+
+-   GLM con soglia ottimizzata: variante della regressione logistica in cui la soglia decisionale viene scelta in modo da ottimizzare l’F1-score;
+
+-   Alberi decisionali: modelli non parametrici che suddividono lo spazio delle variabili tramite regole decisionali;
+
+-   Random Forest: metodo basato su più alberi, che migliorano la stabilità e riduce la varianza.
 
 ```{r}
 
@@ -359,6 +425,14 @@ for(m in metodi){
 
 ## Evaluation
 
+L’oversampling risulta la tecnica più efficace per la gestione dello sbilanciamento delle classi. 
+
+Utilizzare i dati senza resampling infatti, nonostante porti valori dell’accuracy molto elevati, presenta una scarsa capacità predittiva sulla classe minoritaria, in quanto il modello non apprende sufficientemente le informazioni necessarie per una classificazione adeguata. 
+
+Le tecniche di under e over sampling migliorano le performance dei modelli. Si è scelto di adottare l’oversampling in quanto, consente di bilanciare le classi senza perdita di informazioni. 
+
+La selezione finale del nostro modello è stata effettuata in base al punteggio F1-score, in quanto presenta il miglior equilibrio tra recall e precision. Il modello con F1-score maggiore è la regressione logistica con ottimizzazione della soglia decisionale, garantendo un minor errore di classificazione della classe minoritaria. 
+
 ```{r, echo=FALSE}
 metriche
 
@@ -388,6 +462,16 @@ auc = function(roc_res){
 }
 ```
 
+Per valutare ulteriormente le performance dei modelli, è stata analizzata la curva ROC e calcolata l’Area Under the Curve (AUC). I risultati evidenziano che:
+
+-   tutti i modelli hanno AUC \> 0.5
+
+-   le performance sono complessivamente simili
+
+-   nessun modello domina nettamente sugli altri
+
+Tuttavia, il modello logistico ottimizzato risulta preferibile per la migliore gestione del trade-off tra falsi positivi e falsi negativi.
+
 ```{r message=FALSE, echo=FALSE}
 roc_glm <- roc(y_test, glm.probs)
 plot(roc_glm$FPR, roc_glm$TPR, type="l", col="blue",xlim=c(0,1), ylim=c(0,1),
@@ -415,3 +499,19 @@ auc_res = list(auc_glm, auc_qda,auc_lda,auc_rf)
 
 legend("bottomright", paste(c("GLM", "QDA", "LDA", "RF"), "- AUC:", auc_res), , col=c("blue","red","green", "black"), lty=1, lwd=3)
 ```
+
+Il modello che garantisce la miglior performance e classificazione della classe minoritaria è la regressione logistica con soglia ottimizzata. Risultano fondamentali per le nostre analisi la gestione dei missing e dei dati sbilanciati, oltre all’ottimizzazione della soglia. 
+
+
+## Deployment
+
+```{r}
+summary(glm_fit)
+
+```
+
+Dall’analisi dei p-value tutti i coefficienti risultano statisticamente significativi: ciò significa che tutte le variabili incluse contribuiscono in modo rilevante alla previsione. 
+I coefficienti a segno negativo indicano che un aumento della variabile in esame riduce la probabilità di dropout. Quelli a segno positivo invece aumentano la probabilità di abbandono. 
+Dai coefficienti del modello risulta che le variabili più rilevanti sono quelle legate alla performance accademica, seguite da fattori comportamentali e socio economici. 
+
+Dal punto di vista operativo, il modello può essere utilizzato come strumento di supporto alle decisioni, permettendo all’università di identificare precocemente gli studenti a rischio e di attuare interventi mirati, quali attività di tutoraggio, supporto psicologico o sostegno economico.
