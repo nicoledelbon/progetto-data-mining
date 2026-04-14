@@ -1,5 +1,13 @@
 rm(list=ls())
-
+library("visdat")
+library("naniar")
+library(mice)
+library(ggcorrplot)
+library(GGally)
+library(MASS)
+library(ISLR)
+library("tree")
+library(randomForest)
 student_dropout_dataset_v3 <- read.csv("student_dropout_dataset_v3.csv")
 data <- student_dropout_dataset_v3[,-1]
 
@@ -67,7 +75,6 @@ step(mfull, mnull)
 
 data <- data[, (names(data) %in% c("Family_Income", "Internet_Access",
                                    "Attendance_Rate","Assignment_Delay_Days",
-                                   
                                    "Travel_Time_Minutes","Part_Time_Job",
                                    "Stress_Index","GPA","Dropout"))]
 
@@ -81,6 +88,7 @@ train = data[labels,]
 test = data[-labels,]
 
 # imputazione  ----------------------------------------------------
+set.seed(1)
 lab_rid <- sample(1:nrow(train), 0.8*nrow(train))
 train_rid <- train[lab_rid,]
 validation <- train[-lab_rid,]
@@ -132,8 +140,6 @@ train_rid <- complete(imp_train,1)
 
 densityplot(imp_train)
 
-
-# imputo nel test o faccio mice?
 validation$Family_Income[is.na(validation$Family_Income)] <- mean(train_rid$Family_Income, na.rm=TRUE)
 validation$Stress_Index[is.na(validation$Stress_Index)] <- mean(train_rid$Stress_Index, na.rm=TRUE)
 
