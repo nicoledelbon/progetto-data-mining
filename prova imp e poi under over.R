@@ -98,10 +98,14 @@ my_predictorMatrix <- 1 - diag(nrow = p, ncol = p)
 my_predictorMatrix[ ,9] <- 0 
 
 library(mice)
-my_training1 <- mice(train_rid, method = "pmm", predictorMatrix = my_predictorMatrix, seed = 1234, printFlag = FALSE)
-my_training2 <- mice(train_rid, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
-my_training3 <- mice(train_rid, method = "lasso.norm", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
-my_training4 <- mice(train_rid, method = "cart", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
+my_training1 <- mice(train_rid, method = "pmm", predictorMatrix = my_predictorMatrix, 
+                     seed = 1234, printFlag = FALSE)
+my_training2 <- mice(train_rid, method = "mean", predictorMatrix = my_predictorMatrix, 
+                     seed = 1234,  printFlag = FALSE)
+my_training3 <- mice(train_rid, method = "lasso.norm", predictorMatrix = my_predictorMatrix, 
+                     seed = 1234,  printFlag = FALSE)
+my_training4 <- mice(train_rid, method = "cart", predictorMatrix = my_predictorMatrix, 
+                     seed = 1234,  printFlag = FALSE)
 
 model1 <- glm.mids(Dropout ~ ., family="binomial", data = my_training1)
 model2 <- glm.mids(Dropout ~ ., family="binomial", data = my_training2)
@@ -135,7 +139,8 @@ eval(models,validation)
 p <- dim(train_rid)[2]
 my_predictorMatrix <- 1 - diag(nrow = p, ncol = p)
 my_predictorMatrix[ ,9] <- 0 
-imp_train <- mice(train_rid, method = "mean", predictorMatrix = my_predictorMatrix, seed = 1234,  printFlag = FALSE)
+imp_train <- mice(train_rid, method = "cart", predictorMatrix = my_predictorMatrix,
+                  seed = 1234,  printFlag = FALSE)
 train_rid <- complete(imp_train,1)
 
 densityplot(imp_train)
@@ -256,7 +261,7 @@ auc = function(roc_res){
 roc_glm <- roc(y_test, glm.probs)
 plot(roc_glm$FPR, roc_glm$TPR, type="l", col="blue",xlim=c(0,1), ylim=c(0,1),
      xlab="False Positive Rate", ylab="True Positive Rate",
-     main="Curva ROC")
+     main="Curva ROC - oversampling")
 abline(0,1,lty=2, col="gray")
 auc_glm=auc(roc_glm)
 
