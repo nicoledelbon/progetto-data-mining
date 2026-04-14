@@ -139,7 +139,7 @@ eval(models,validation)
 p <- dim(train_rid)[2]
 my_predictorMatrix <- 1 - diag(nrow = p, ncol = p)
 my_predictorMatrix[ ,9] <- 0 
-imp_train <- mice(train_rid, method = "cart", predictorMatrix = my_predictorMatrix,
+imp_train <- mice(train_rid, method = "mean", predictorMatrix = my_predictorMatrix,
                   seed = 1234,  printFlag = FALSE)
 train_rid <- complete(imp_train,1)
 
@@ -174,7 +174,6 @@ for(m in metodi){
   dati_tst <- test
   y_test <- dati_tst$Dropout
   
-  library(MASS)
   mod_lda = lda(Dropout ~ ., data = dati_trn) 
   lda_tst_pred = predict(mod_lda, dati_tst)$class
   lda_tab <- table(predicted = lda_tst_pred, actual = y_test)
@@ -209,8 +208,6 @@ for(m in metodi){
   m.opt <- unlist(metrics(opt_tab))
   
   # ALBERO ------------------------------------------------------------------
-  library(ISLR)
-  library("tree")
   dati_trn$Dropout <- as.factor(dati_trn$Dropout)
   tree_dati <- tree(Dropout ~ . , data=dati_trn)
   summary(tree_dati)
@@ -219,8 +216,7 @@ for(m in metodi){
   m.tree=unlist(metrics(tree_tab))
   
   # RANDOM FOREST -----------------------------------------------------------
-  library(randomForest)
-  rf_model <- randomForest(Dropout ~ ., data=dati_trn, ntree=200)
+  rf_model <- randomForest(Dropout ~ ., data=dati_trn, ntree=300)
   rf_pred <- predict(rf_model, dati_tst)
   tab_rf <- table(rf_pred, y_test)
   m.rf = unlist(metrics(tab_rf))
@@ -235,6 +231,10 @@ for(m in metodi){
 }
 
 metriche 
+
+plot(tree_dati)
+text(tree_dati)
+
 
 roc = function(y, pred, soglia = seq(0,1,0.001)){
   y = as.numeric(y)-1
