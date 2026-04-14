@@ -53,6 +53,16 @@ metrics <- function(cm) {
   ))
 }
 
+
+min <- min(data$Family_Income, na.rm = T)
+max <- max(data$Family_Income, na.rm = T)
+summary(data$Family_Income)
+
+data$Family_Income[!is.na(data$Family_Income)] <- (data$Family_Income[!is.na(data$Family_Income)]-min)/(max-min)
+summary(data$Family_Income)
+
+
+
 data_numeric <- data[, c("Age","Family_Income", "Study_Hours_per_Day" ,"Attendance_Rate","Assignment_Delay_Days",
                          "Travel_Time_Minutes" ,"Stress_Index" , "GPA","Semester_GPA" ,"CGPA")]
 par(mfrow=c(2,5))
@@ -232,7 +242,7 @@ for(m in metodi){
 
 metriche 
 
-plot(tree_dati)
+q2plot(tree_dati)
 text(tree_dati)
 
 
