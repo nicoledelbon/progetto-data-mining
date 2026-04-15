@@ -108,7 +108,6 @@ par(mfrow=c(1,1))
 
 ```
 
-<<<<<<< HEAD
 Successivamente è stata effettuata un'analisi dei valori mancanti, con l’obiettivo di verificarne la presenza, quantificarne l’entità e individuare eventuali pattern o correlazioni tra essi.
 La variabile Family_Income è stata normlizzata a causa della forte asimmetria nella sua distribuzione.
 
@@ -158,7 +157,7 @@ Questa procedura ci ha permesso, oltre ad ottenere un modello parsimonioso, di e
 
 ## Preparation
 
-Per valutare il miglior metodo di imputazione e il modello ottimale per la classificazione, abbiamo diviso il nostro dataset in training (80%) e test set(20%). Abbiamo successivamente diviso ulteriormente il training set in train ridotto (80%) e validation (20%),sul quale calcolare le metriche di valutazione accuracy e f1 score.
+Per valutare il miglior metodo di imputazione e il modello ottimale per la classificazione, abbiamo diviso il nostro dataset in training (80%) e test set(20%). Abbiamo successivamente diviso ulteriormente il training set in train ridotto (80%) e validation (20%), sul quale calcolare le metriche di valutazione accuracy e f1 score.
 
 ```{r, include=FALSE}
 mfull <- glm(Dropout ~ . , data=data, family="binomial")
