@@ -7,9 +7,14 @@ output:
 ---
 
 # Modelli di classificazione per la performance degli studenti
-L’Università degli Studi di Milano Centrale ha condotto un’analisi volta a individuare i principali fattori che influenzano l’abbandono dei corsi universitari. In tale contesto, è stato affidato il presente progetto con l’obiettivo di sviluppare un modello di classificazione in grado di prevedere, sulla base di caratteristiche accademiche, demografiche e comportamentali  degli studenti, la probabilità di abbandono del percorso di studi. 
+L’Università degli Studi di Milano Centrale ha condotto un’analisi volta a individuare i principali fattori che influenzano l’abbandono dei corsi universitari. Il presente progetto partecipa al bando indotto dall'Università, con l’obiettivo di sviluppare un modello di classificazione in grado di prevedere, sulla base di caratteristiche accademiche, demografiche e comportamentali  degli studenti, la probabilità di abbandono del percorso di studi. 
 L'analisi è stata condotta tramite il software R, utilizzando il dataset "Student Dropout Prediction Dataset" disponibile su Kaggle, costruito su una simulazione relativa a 10000 studenti.
+<<<<<<< HEAD
 I dati, infatti, riproducono fedelmente le distribuzioni reali degli studenti, mantenendo asimmetrie, valori mancanti in alcune osservazioni e correlazioni tra esse. L’obiettivo di questo progetto è individuare il miglior modello che, date alcune caratteristiche dello studente, sia in grado di prevedere se esso completerà o meno gli studi. 
+=======
+I dati riproducono fedelmente le distribuzioni reali degli studenti, mantenendo asimmetrie, valori mancanti in alcune osservazioni e correlazioni tra esse. 
+
+>>>>>>> 1952cfab244f1e39fe0d4a805490ccd5acf94885
 
 ```{r include=FALSE}
 library("visdat")
@@ -25,7 +30,7 @@ library(gridExtra)
 ```
 
 ```{r include=FALSE}
-student_dropout_dataset_v3 <- read.csv("~/progetto-data-mining/student_dropout_dataset_v3.csv")
+student_dropout_dataset_v3 <- read.csv("student_dropout_dataset_v3.csv")
 ```
 
 ## Understanding
@@ -80,7 +85,7 @@ summary(data)
 
 Dall’analisi preliminare del campo di variazione delle variabili non emergono valori anomali.
 
-Ho dei valori mancanti nelle variabili Family_Income, Study_Hours_per_Day e Stress_index. I range di variazione delle variabili sono coerenti con le variabili in esame.
+I range di variazione delle variabili sono coerenti con le variabili in esame.
 
 Data la forte asimmetria della variabile Family_Income, ci è sembrato opportuno normalizzare la variabile.
 
@@ -107,7 +112,21 @@ par(mfrow=c(1,1))
 
 ```
 
+<<<<<<< HEAD
 Successivamente è stata effettuata un'analisi dei valori mancanti, con l’obiettivo di verificarne la presenza, quantificarne l’entità e individuare eventuali pattern o correlazioni tra essi.
+=======
+La variabile Family_Income è stata normlizzata a causa della forte asimmetria nella sua distribuzione.
+
+```{r, include=FALSE}
+min <- min(data$Family_Income, na.rm = T)
+max <- max(data$Family_Income, na.rm = T)
+
+data$Family_Income[!is.na(data$Family_Income)] <- (data$Family_Income[!is.na(data$Family_Income)]-min)/(max-min)
+summary(data$Family_Income)
+```
+
+L'analisi esporativa dei valori mancanti ne ha evidenziato la presenza, valutato l’entità e individuato eventuali pattern sistematici e associazioni tra le varibaili coinvolte.
+>>>>>>> 1952cfab244f1e39fe0d4a805490ccd5acf94885
 
 Dai grafici emerge che solo lo 0.8% dei dati risulta essere mancante.
 
@@ -120,6 +139,10 @@ grid.arrange(p1, p2, ncol=2)
 
 ```
 
+Si nota la presenza di valori mancanti nelle variabili Family_Income, Study_Hours_per_Day e Stress_index. 
+Queste variabili sono associate ad informazioni sensibili e personali,pertanto è possibile che alcuni studenti abbiano omesso volontariamente la risposta. Per questo motivo, risulta necessario un metodo opportuno di gestione dei missing.
+
+
 Infine, è stata analizzata la correlazione tra le variabili numeriche al fine di individuare eventuali relazioni lineari e possibili fenomeni di multicollinearità.
 
 ```{r, include=FALSE}
@@ -130,17 +153,23 @@ cor <- cor(data_numeric, use="complete.obs")
 ```{r echo=FALSE, warning=FALSE}
 ggcorrplot(cor, lab=T, hc.order=T)
 ```
+Notiamo che la correlazione tra le variabili GPA, Semester_GPA e CGPA è molto vicina ad 1. 
+Considerando il loro significato, esse descrivono in mofo molto simile il rendimento accademico degli studenti: includerle tutte e tre nelle analisi risulterebbe ridondandte. 
+
+Abbiamo inoltre effettuato una selezione backward delle variabili al fine di mantenere nel modello le variabili più rilevanti per prevedere la variabile risposta. 
+Tramite AIC abbiamo rimosso le variabilii meno informative. 
+Il modello finale è composto da Family_Income, Internet_Access, Attendance_Rate, Assignment_Delay_Days, Travel_Time_Minutes, Part_Time_Job, Stress_Index e GPA.
+
+Questa procedura ci ha permesso, oltre ad ottenere un modello parsimonioso, di escludere le variabili collienari, tenendo GPA ed escludendo Semester GPA e CGPA. 
 
 ## Preparation
 
-Data la forte correlazione tra alcune variabili, è stato necessario procedere tramite selezione back-wise delle variabili.
-
-Le variabili significative sono risultate Family_Income, Internet_Access, Attendance_Rate, Assignment_Delay_Days, Travel_Time_Minutes, Part_Time_Job, Stress_Index e GPA.
+Per valutare il miglior metodo di imputazione e il modello ottimale per la classificazione, abbiamo diviso il nostro dataset in training (80%) e test set(20%). Abbiamo successivamente diviso ulteriormente il training set in train ridotto (80%) e validation (20%),sul quale calcolare le metriche di valutazione accuracy e f1 score.
 
 ```{r, include=FALSE}
 mfull <- glm(Dropout ~ . , data=data, family="binomial")
 mnull <- glm(Dropout ~ 1 , data=data, family="binomial")
-step(mfull, mnull)
+step(mfull, scope = list(lower = mnull, upper = mfull), direction = "both")
 
 data <- data[, (names(data) %in% c("Family_Income", "Internet_Access",
                                    "Attendance_Rate","Assignment_Delay_Days",
@@ -156,9 +185,9 @@ data_numeric <- data_numeric[, names(data_numeric) %in% c("Family_Income", "Atte
 
 ### Imputazione dei missing values
 
-Poichè il dataset include valori mancanti, si è ritenuto opportuno procedere con tecniche di imputazione.
+Al fine della gestione dei dati mancanti, si è ritenuto opportuno procedere con tecniche di imputazione.
 
-Sono stati considerati diverse metodi, in particolare:
+Sono stati considerati diversi metodi, in particolare:
 
 -   Mean: i missing vengono sostituiti con la media della variabile, riducendo la variabilità dei dati;
 
@@ -168,7 +197,7 @@ Sono stati considerati diverse metodi, in particolare:
 
 -   Cart: metodo basato su alberi decisionali che imputano valori mancanti sfruttando relazioni non lineari tra le variabili
 
-Per procedere con le analisi, è stato effettuato uno split tra training e test set.
+I diversi metodi sono stati testati sul train ridotto e valutati sul validation set. 
 
 ```{r, include=FALSE}
 set.seed(1)
@@ -178,7 +207,6 @@ test = data[-labels,]
 
 ```
 
-Per individuare il migliore metodo di imputazione, è stato necessario dividere ulteriormente il training set per ricavare il validation set sul quale calcolare le metriche di valutazione, ovvero accuracy e f1 score.
 
 ```{r}
 f1_score <- function(cm) {
@@ -240,13 +268,17 @@ eval = function(models, test){
   
   rbind(accuracies, f1)
 }
+
+ev <- eval(models,validation)
+colnames(ev) <- c("pmm", "mean", "lasso.norm", "cart")
+
 ```
 
 ```{r echo=FALSE}
-eval(models, validation)
+ev
 ```
 
-Il metodo di imputazione migliore risulta essere quello tramite media.
+Il metodo di imputazione migliore, sia secondo accuracy che secondo F1 score, risulta essere quello tramite media.
 
 ```{r, include=FALSE}
 p <- dim(train_rid)[2]
@@ -258,14 +290,14 @@ train_rid <- complete(imp_train,1)
 
 ```
 
-I dati imputati sembra cogliere la reale distribuzione delle variabili.
+La distribuzione dei dati imputati coglie in modo soddisfacente la reale distribuzione delle variabili.
 
 ```{r, echo=FALSE}
 densityplot(imp_train)
 
 ```
 
-Per risolvere il problema dei missing anche nel validation e nel test set, i valori mancanti sono stati sosituiti con i valori attesi delle variabili in esame, riportando di fatto l'imputazione svolta nel training set.
+I missing values presenti nel validation e test set sono stati sostituiti con i valori imputati per i missing values delle rispettive variabili nel train ridotto, ovvero il valore atteso delle variabili contenenti missing calcolati sui dati osservati nel train ridotto.
 
 ```{r, include=FALSE}
 validation$Family_Income[is.na(validation$Family_Income)] <- mean(train_rid$Family_Income, na.rm=TRUE)
@@ -276,7 +308,7 @@ test$Stress_Index[is.na(test$Stress_Index)] <- mean(train_rid$Stress_Index, na.r
 
 ```
 
-Dall’analisi della variabile risposta, emerge uno sbilanciamento delle classi, con una prevalenza di studenti che completano gli studi. 
+Dall’analisi della variabile risposta, emerge uno sbilanciamento delle classi, con una prevalenza di studenti che completano gli studi.
 
 ```{r echo=FALSE}
 table(train_rid$Dropout)  
