@@ -9,7 +9,7 @@ output:
 # Modelli di classificazione per la performance degli studenti
 L’Università degli Studi di Milano Centrale ha condotto un’analisi volta a individuare i principali fattori che influenzano l’abbandono dei corsi universitari. In tale contesto, è stato affidato il presente progetto con l’obiettivo di sviluppare un modello di classificazione in grado di prevedere, sulla base di caratteristiche accademiche, demografiche e comportamentali  degli studenti, la probabilità di abbandono del percorso di studi. 
 L'analisi è stata condotta tramite il software R, utilizzando il dataset "Student Dropout Prediction Dataset" disponibile su Kaggle, costruito su una simulazione relativa a 10000 studenti.
-I dati, infatti, riproducono fedelmente le distribuzioni reali degli studenti, mantenendo asimmetrie, valori mancanti in alcune osservazioni e correlazioni tra esse. L’obiettivo di questo progetto è individuare il miglior modello che, date alcune caratteristiche dello studente, sia in grado di prevedere se esso completerà o meno gli studi. La nostra analisi ha lo scopo di prevedere se uno studente abbandoni il ciclo di studi prima
+I dati, infatti, riproducono fedelmente le distribuzioni reali degli studenti, mantenendo asimmetrie, valori mancanti in alcune osservazioni e correlazioni tra esse. L’obiettivo di questo progetto è individuare il miglior modello che, date alcune caratteristiche dello studente, sia in grado di prevedere se esso completerà o meno gli studi. 
 
 ```{r include=FALSE}
 library("visdat")
@@ -82,6 +82,17 @@ Dall’analisi preliminare del campo di variazione delle variabili non emergono 
 
 Ho dei valori mancanti nelle variabili Family_Income, Study_Hours_per_Day e Stress_index. I range di variazione delle variabili sono coerenti con le variabili in esame.
 
+Data la forte asimmetria della variabile Family_Income, ci è sembrato opportuno normalizzare la variabile.
+
+```{r, include=FALSE}
+min <- min(data$Family_Income, na.rm = T)
+max <- max(data$Family_Income, na.rm = T)
+
+data$Family_Income[!is.na(data$Family_Income)] <- (data$Family_Income[!is.na(data$Family_Income)]-min)/(max-min)
+summary(data$Family_Income)
+```
+
+
 L’analisi tramite boxplot è utile al fine di confrontare la distribuzione delle variabili esplicative numeriche condizionatamente alla variabile risposta (Dropout), permettendo di evidenziare eventuali differenze tra i gruppi.
 
 ```{r echo=FALSE}
@@ -94,16 +105,6 @@ for(i in 1:ncol(data_numeric)){
 }
 par(mfrow=c(1,1))
 
-```
-
-Data la forte asimmetria della variabile Family_Income, ci è sembrato opportuno normalizzare la variabile.
-
-```{r, include=FALSE}
-min <- min(data$Family_Income, na.rm = T)
-max <- max(data$Family_Income, na.rm = T)
-
-data$Family_Income[!is.na(data$Family_Income)] <- (data$Family_Income[!is.na(data$Family_Income)]-min)/(max-min)
-summary(data$Family_Income)
 ```
 
 Successivamente è stata effettuata un'analisi dei valori mancanti, con l’obiettivo di verificarne la presenza, quantificarne l’entità e individuare eventuali pattern o correlazioni tra essi.
