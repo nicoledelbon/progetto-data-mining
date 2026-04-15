@@ -293,3 +293,5 @@ auc_rf=auc(roc_rf)
 auc_res = list(auc_glm, auc_qda,auc_lda,auc_rf)
 
 legend("bottomright", paste(c("GLM", "QDA", "LDA", "RF"), "- AUC:", auc_res), , col=c("blue","red","green", "black"), lty=1, lwd=3)
+
+summary(glm_fit)
