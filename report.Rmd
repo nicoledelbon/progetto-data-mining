@@ -97,7 +97,7 @@ par(mfrow=c(1,1))
 
 ```
 
-Successivamente è stata effettuata un'analisi dei valori mancanti, con l’obiettivo di verificarne la presenza, quantificarne l’entità e individuare eventuali pattern o correlazioni tra essi. La variabile Family_Income è stata normlizzata a causa della forte asimmetria nella sua distribuzione.
+Successivamente è stata effettuata un'analisi dei valori mancanti, con l’obiettivo di verificarne la presenza, quantificarne l’entità e individuare eventuali pattern o correlazioni tra essi. La variabile Family_Income è stata normalizzata a causa della forte asimmetria nella sua distribuzione.
 
 ```{r, include=FALSE}
 min <- min(data$Family_Income, na.rm = T)
@@ -107,7 +107,7 @@ data$Family_Income[!is.na(data$Family_Income)] <- (data$Family_Income[!is.na(dat
 summary(data$Family_Income)
 ```
 
-L'analisi esplorativa dei valori mancanti ne ha evidenziato la presenza, valutato l’entità e individuato eventuali pattern sistematici e associazioni tra le varibaili coinvolte.
+L'analisi esplorativa dei valori mancanti ne ha evidenziato la presenza, valutato l’entità e individuato eventuali pattern sistematici e associazioni tra le variabili coinvolte.
 
 Dai grafici emerge che solo lo 0.8% dei dati risulta essere mancante.
 
