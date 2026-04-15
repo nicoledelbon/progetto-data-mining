@@ -9,12 +9,8 @@ output:
 # Modelli di classificazione per la performance degli studenti
 L’Università degli Studi di Milano Centrale ha condotto un’analisi volta a individuare i principali fattori che influenzano l’abbandono dei corsi universitari. Il presente progetto partecipa al bando indotto dall'Università, con l’obiettivo di sviluppare un modello di classificazione in grado di prevedere, sulla base di caratteristiche accademiche, demografiche e comportamentali  degli studenti, la probabilità di abbandono del percorso di studi. 
 L'analisi è stata condotta tramite il software R, utilizzando il dataset "Student Dropout Prediction Dataset" disponibile su Kaggle, costruito su una simulazione relativa a 10000 studenti.
-<<<<<<< HEAD
 I dati, infatti, riproducono fedelmente le distribuzioni reali degli studenti, mantenendo asimmetrie, valori mancanti in alcune osservazioni e correlazioni tra esse. L’obiettivo di questo progetto è individuare il miglior modello che, date alcune caratteristiche dello studente, sia in grado di prevedere se esso completerà o meno gli studi. 
-=======
-I dati riproducono fedelmente le distribuzioni reali degli studenti, mantenendo asimmetrie, valori mancanti in alcune osservazioni e correlazioni tra esse. 
-
->>>>>>> 1952cfab244f1e39fe0d4a805490ccd5acf94885
+ìI dati riproducono fedelmente le distribuzioni reali degli studenti, mantenendo asimmetrie, valori mancanti in alcune osservazioni e correlazioni tra esse. 
 
 ```{r include=FALSE}
 library("visdat")
@@ -114,7 +110,6 @@ par(mfrow=c(1,1))
 
 <<<<<<< HEAD
 Successivamente è stata effettuata un'analisi dei valori mancanti, con l’obiettivo di verificarne la presenza, quantificarne l’entità e individuare eventuali pattern o correlazioni tra essi.
-=======
 La variabile Family_Income è stata normlizzata a causa della forte asimmetria nella sua distribuzione.
 
 ```{r, include=FALSE}
@@ -126,7 +121,6 @@ summary(data$Family_Income)
 ```
 
 L'analisi esporativa dei valori mancanti ne ha evidenziato la presenza, valutato l’entità e individuato eventuali pattern sistematici e associazioni tra le varibaili coinvolte.
->>>>>>> 1952cfab244f1e39fe0d4a805490ccd5acf94885
 
 Dai grafici emerge che solo lo 0.8% dei dati risulta essere mancante.
 
