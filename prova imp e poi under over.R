@@ -53,16 +53,6 @@ metrics <- function(cm) {
   ))
 }
 
-
-min <- min(data$Family_Income, na.rm = T)
-max <- max(data$Family_Income, na.rm = T)
-summary(data$Family_Income)
-
-data$Family_Income[!is.na(data$Family_Income)] <- (data$Family_Income[!is.na(data$Family_Income)]-min)/(max-min)
-summary(data$Family_Income)
-
-
-
 data_numeric <- data[, c("Age","Family_Income", "Study_Hours_per_Day" ,"Attendance_Rate","Assignment_Delay_Days",
                          "Travel_Time_Minutes" ,"Stress_Index" , "GPA","Semester_GPA" ,"CGPA")]
 par(mfrow=c(2,5))
@@ -242,7 +232,7 @@ for(m in metodi){
 
 metriche 
 
-q2plot(tree_dati)
+plot(tree_dati)
 text(tree_dati)
 
 
@@ -293,5 +283,3 @@ auc_rf=auc(roc_rf)
 auc_res = list(auc_glm, auc_qda,auc_lda,auc_rf)
 
 legend("bottomright", paste(c("GLM", "QDA", "LDA", "RF"), "- AUC:", auc_res), , col=c("blue","red","green", "black"), lty=1, lwd=3)
-
-summary(glm_fit)

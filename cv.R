@@ -132,3 +132,8 @@ for (m in metodi) {
 
 metriche_cv
 
+# oversampling e undersampling funzionano meglio
+# la sregressione logistica con soglia otmiziata è il modello migliore
+# Conferma che l'oversampling è la tecnica migliore
+
+

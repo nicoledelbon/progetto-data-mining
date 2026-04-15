@@ -10,11 +10,11 @@ output:
 
 L’Università degli Studi di Milano Centrale è interessata a individuare i principali fattori che influenzano l’abbandono dei propri corsi universitari.
 
-Il presente progetto ha l’obiettivo di sviluppare un modello di classificazione in grado di prevedere, sulla base di caratteristiche accademiche, demografiche e comportamentali degli studenti, la probabilità di abbandono del percorso di studi. 
+Il presente progetto ha l’obiettivo di sviluppare un modello di classificazione in grado di prevedere, sulla base di caratteristiche accademiche, demografiche e comportamentali degli studenti, la probabilità di abbandono del percorso di studi.
 
-L'analisi è stata condotta tramite il software R, utilizzando il dataset "Student Dropout Prediction Dataset" disponibile su Kaggle, costruito su una simulazione relativa a 10000 studenti. I dati, infatti, riproducono fedelmente le distribuzioni reali degli studenti, mantenendo asimmetrie, valori mancanti in alcune osservazioni e correlazioni tra esse. 
+L'analisi è stata condotta tramite il software R, utilizzando il dataset "Student Dropout Prediction Dataset" disponibile su Kaggle, costruito su una simulazione relativa a 10000 studenti. I dati, infatti, riproducono fedelmente le distribuzioni reali degli studenti, mantenendo asimmetrie, valori mancanti in alcune osservazioni e correlazioni tra esse.
 
-L’obiettivo di questo progetto è quindi individuare il miglior modello che, date alcune caratteristiche dello studente, sia in grado di prevedere se esso completerà o meno gli studi.
+L’obiettivo dell'elaborato è quindi individuare il miglior modello che, date alcune caratteristiche dello studente, sia in grado di prevedere se esso completerà o meno gli studi.
 
 ```{r include=FALSE}
 library("visdat")
@@ -96,7 +96,6 @@ for(i in 1:ncol(data_numeric)){
 par(mfrow=c(1,1))
 
 ```
-
 
 ```{r, include=FALSE}
 min <- min(data$Family_Income, na.rm = T)
@@ -296,20 +295,20 @@ data1 <- train_rid[train_rid$Dropout==1,]
 
 Per affrontare questo problema sono state considerate tre strategie:
 
-- dati originali 
-- undersampling : riduzione delle osservazioni della classe maggioritaria;
-- oversampling : duplicazione delle osservazioni della classe minoritaria.
+-   dati originali
+-   undersampling : riduzione delle osservazioni della classe maggioritaria;
+-   oversampling : duplicazione delle osservazioni della classe minoritaria.
 
 Ci aspettiamo che i metodi di resampling aiutino il modello nella classificazione della classe minoritaria.
 
 Al fine di confrontare le performance, sono stati considerati diversi modelli di classificazione:
 
-- LDA : modello lineare che assume distribuzioni gaussiane per le variabili e uguale matrice di covarianza tra le classi; 
-- QDA: modello quadratico che assume distribuzioni gaussiane e matrici di covarianza diverse tra le classi, permettendo frontiere di decisionali non lineari; 
-- Regressione logistica: modello probabilistico utilizzato per la classificazione binaria; 
-- GLM con soglia ottimizzata: variante della regressione logistica in cui la soglia decisionale viene scelta in modo da ottimizzare l’F1-score sul validation; 
-- Alberi decisionali: modelli non parametrici che suddividono lo spazio delle variabili tramite regole decisionali; 
-- Random Forest: metodo basato su più alberi, che migliorano la stabilità e riduce la varianza.
+-   LDA : modello lineare che assume distribuzioni gaussiane per le variabili e uguale matrice di covarianza tra le classi;
+-   QDA: modello quadratico che assume distribuzioni gaussiane e matrici di covarianza diverse tra le classi, permettendo frontiere di decisionali non lineari;
+-   Regressione logistica: modello probabilistico utilizzato per la classificazione binaria;
+-   GLM con soglia ottimizzata: variante della regressione logistica in cui la soglia decisionale viene scelta in modo da ottimizzare l’F1-score sul validation;
+-   Alberi decisionali: modelli non parametrici che suddividono lo spazio delle variabili tramite regole decisionali;
+-   Random Forest: metodo basato su più alberi, che migliorano la stabilità e riduce la varianza.
 
 I diversi modelli sono stati valutati tramite le metriche qui riportate.
 
@@ -423,10 +422,7 @@ for(m in metodi){
 
 ## Evaluation
 
-L’oversampling risulta la tecnica più efficace per la gestione dello sbilanciamento delle classi. Utilizzare i dati senza resampling infatti, nonostante porti valori dell’accuracy molto elevati, presenta una scarsa capacità predittiva sulla classe minoritaria, in quanto il modello non apprende sufficientemente le informazioni necessarie per una classificazione adeguata. Le tecniche di under e over sampling, invece, migliorano le performance dei modelli. 
-Si è scelto di adottare l’oversampling in quanto consente di bilanciare le classi senza perdita di informazioni. 
-La selezione finale del nostro modello è stata effettuata in base al punteggio F1-score, in quanto presenta il miglior equilibrio tra recall (tasso di veri positivi) e precision (capacità di prevedere in modo positivo un'istanza positiva). 
-Il modello con F1-score maggiore è la regressione logistica con ottimizzazione della soglia decisionale, garantendo un minor errore di classificazione della classe minoritaria.
+L’oversampling risulta la tecnica più efficace per la gestione dello sbilanciamento delle classi. Utilizzare i dati senza resampling infatti, nonostante porti valori dell’accuracy molto elevati, presenta una scarsa capacità predittiva sulla classe minoritaria, in quanto il modello non apprende sufficientemente le informazioni necessarie per una classificazione adeguata. Le tecniche di under e over sampling, invece, migliorano le performance dei modelli. Si è scelto di adottare l’oversampling in quanto consente di bilanciare le classi senza perdita di informazioni. La selezione finale del nostro modello è stata effettuata in base al punteggio F1-score, in quanto presenta il miglior equilibrio tra recall (tasso di veri positivi) e precision (capacità di prevedere in modo positivo un'istanza positiva). Il modello con F1-score maggiore è la regressione logistica con ottimizzazione della soglia decisionale, garantendo un minor errore di classificazione della classe minoritaria.
 
 ```{r, echo=FALSE}
 metriche
@@ -459,11 +455,11 @@ auc = function(roc_res){
 }
 ```
 
-I risultati evidenziano che: 
+I risultati evidenziano che:
 
-- tutti i modelli hanno AUC \> 0.5 
-- le performance sono complessivamente simili 
-- nessun modello domina nettamente sugli altri
+-   tutti i modelli hanno AUC \> 0.5
+-   le performance sono complessivamente simili
+-   nessun modello domina nettamente sugli altri
 
 Tuttavia, il modello logistico ottimizzato risulta preferibile per la migliore gestione del trade-off tra falsi positivi e falsi negativi.
 
@@ -495,9 +491,7 @@ auc_res = list(auc_glm, auc_qda,auc_lda,auc_rf)
 legend("bottomright", paste(c("GLM", "QDA", "LDA", "RF"), "- AUC:", auc_res), , col=c("blue","red","green", "black"), lty=1, lwd=3)
 ```
 
-Il modello che garantisce la miglior performance e classificazione della classe minoritaria è la regressione logistica con soglia ottimizzata. Risultano fondamentali per le nostre analisi la gestione dei missing e dei dati sbilanciati, oltre all’ottimizzazione della soglia.
-Questo è il modello che viene proposto all'Università per prevdere l'abbandono degli studi. 
-In seguito proponiamo un'analisi dettagliata del modello e delle variabili su cui porre una maggior attenzione per permettere a tutti gli studenti di completare i propri studi. 
+Il modello che garantisce la miglior performance e classificazione della classe minoritaria è la regressione logistica con soglia ottimizzata. Risultano fondamentali per le nostre analisi la gestione dei missing e dei dati sbilanciati, oltre all’ottimizzazione della soglia. Questo è il modello che viene proposto all'Università per prevdere l'abbandono degli studi. In seguito proponiamo un'analisi dettagliata del modello e delle variabili su cui porre una maggior attenzione per permettere a tutti gli studenti di completare i propri studi.
 
 ## Deployment
 
@@ -506,8 +500,6 @@ summary(glm_fit)
 
 ```
 
-Dall’analisi dei p-value tutti i coefficienti risultano statisticamente significativi: ciò significa che tutte le variabili incluse contribuiscono in modo rilevante alla previsione. I coefficienti a segno negativo indicano che un aumento della variabile in esame riduce la probabilità di dropout. Quelli a segno positivo invece aumentano la probabilità di abbandono. Dai coefficienti del modello risulta che le variabili più rilevanti sono quelle legate alla performance accademica, seguite da fattori comportamentali e socio economici.
-Un aumento di un solo punto nella media scolastica riduce del 68% la probabilità di abbandono, mentre avere un lavoro part time aumenta la probabilità del 27%.
+Dall’analisi dei p-value tutti i coefficienti risultano statisticamente significativi: ciò significa che tutte le variabili incluse contribuiscono in modo rilevante alla previsione. I coefficienti a segno negativo indicano che un aumento della variabile in esame riduce la probabilità di dropout. Quelli a segno positivo invece aumentano la probabilità di abbandono. Dai coefficienti del modello risulta che le variabili più rilevanti sono quelle legate alla performance accademica, seguite da fattori comportamentali e socio economici. Un aumento di un solo punto nella media scolastica riduce del 68% la probabilità di abbandono, mentre avere un lavoro part time aumenta la probabilità del 27%.
 
-Dal punto di vista operativo, il modello può essere utilizzato come strumento di supporto alle decisioni, permettendo all’università di identificare precocemente gli studenti a rischio e di attuare interventi mirati, quali attività di tutoraggio, supporto psicologico o sostegno economico.
-In particolare, dai risultati ottenuti emerge essere opportuno garantire l'accesso digitale agli studenti, potenziare il supporto economico per ridurre il ricorso al lavoro part-time, offrire servizi di supporto psicologico per la gestione dello stress e adottare un sistema di tassazione progressiva basato sul reddito familiare.
+Dal punto di vista operativo, il modello può essere utilizzato come strumento di supporto alle decisioni, permettendo all’università di identificare precocemente gli studenti a rischio e di attuare interventi mirati, quali attività di tutoraggio, supporto psicologico o sostegno economico. In particolare, dai risultati ottenuti emerge essere opportuno garantire l'accesso digitale agli studenti, potenziare il supporto economico per ridurre il ricorso al lavoro part-time, offrire servizi di supporto psicologico per la gestione dello stress e adottare un sistema di tassazione progressiva basato sul reddito familiare.
