@@ -55,6 +55,15 @@ metrics <- function(cm) {
 
 data_numeric <- data[, c("Age","Family_Income", "Study_Hours_per_Day" ,"Attendance_Rate","Assignment_Delay_Days",
                          "Travel_Time_Minutes" ,"Stress_Index" , "GPA","Semester_GPA" ,"CGPA")]
+
+min_max <- function(x) {
+  (x - min(x, na.rm = TRUE)) / (max(x, na.rm = TRUE) - min(x, na.rm = TRUE))
+}
+
+num_cols <- sapply(data, is.numeric)
+data[num_cols] <- lapply(data[num_cols], min_max)
+summary(data)
+
 par(mfrow=c(2,5))
 for(i in 1:ncol(data_numeric)){
   boxplot(data_numeric[,i] ~ data$Dropout, col=c("green", "red"), ylab=colnames(data_numeric)[i],
@@ -71,7 +80,7 @@ ggcorrplot(cor, lab=T, hc.order=T)
 
 mfull <- glm(Dropout ~ . , data=data, family="binomial")
 mnull <- glm(Dropout ~ 1 , data=data, family="binomial")
-step(mfull, mnull)
+step(mfull, scope = list(lower = mnull, upper = mfull), direction = "both")
 
 data <- data[, (names(data) %in% c("Family_Income", "Internet_Access",
                                    "Attendance_Rate","Assignment_Delay_Days",
@@ -283,3 +292,4 @@ auc_rf=auc(roc_rf)
 auc_res = list(auc_glm, auc_qda,auc_lda,auc_rf)
 
 legend("bottomright", paste(c("GLM", "QDA", "LDA", "RF"), "- AUC:", auc_res), , col=c("blue","red","green", "black"), lty=1, lwd=3)
+
