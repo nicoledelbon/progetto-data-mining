@@ -175,13 +175,6 @@ Sono stati considerati diversi metodi, in particolare:
 
 I diversi metodi sono stati testati sul train ridotto e valutati sul validation set.
 
-```{r, include=FALSE}
-set.seed(1)
-labels = sample(1:nrow(data), 0.8*nrow(data))
-train = data[labels,]
-test = data[-labels,]
-
-```
 
 ```{r}
 f1_score <- function(cm) {

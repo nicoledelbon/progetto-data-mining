@@ -53,9 +53,6 @@ metrics <- function(cm) {
   ))
 }
 
-data_numeric <- data[, c("Age","Family_Income", "Study_Hours_per_Day" ,"Attendance_Rate","Assignment_Delay_Days",
-                         "Travel_Time_Minutes" ,"Stress_Index" , "GPA","Semester_GPA" ,"CGPA")]
-
 min_max <- function(x) {
   (x - min(x, na.rm = TRUE)) / (max(x, na.rm = TRUE) - min(x, na.rm = TRUE))
 }
@@ -63,6 +60,10 @@ min_max <- function(x) {
 num_cols <- sapply(data, is.numeric)
 data[num_cols] <- lapply(data[num_cols], min_max)
 summary(data)
+
+data_numeric <- data[, c("Age","Family_Income", "Study_Hours_per_Day" ,"Attendance_Rate","Assignment_Delay_Days",
+                         "Travel_Time_Minutes" ,"Stress_Index" , "GPA","Semester_GPA" ,"CGPA")]
+
 
 par(mfrow=c(2,5))
 for(i in 1:ncol(data_numeric)){
