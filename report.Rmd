@@ -97,14 +97,6 @@ par(mfrow=c(1,1))
 
 ```
 
-```{r, include=FALSE}
-min <- min(data$Family_Income, na.rm = T)
-max <- max(data$Family_Income, na.rm = T)
-
-data$Family_Income[!is.na(data$Family_Income)] <- (data$Family_Income[!is.na(data$Family_Income)]-min)/(max-min)
-summary(data$Family_Income)
-```
-
 L'analisi esplorativa dei valori mancanti ne ha evidenziato la presenza, valutato l’entità e individuato eventuali pattern sistematici e associazioni tra le variabili coinvolte.
 
 Dai grafici emerge che solo lo 0.8% dei dati risulta essere mancante.
@@ -133,14 +125,6 @@ ggcorrplot(cor, lab=T, hc.order=T)
 
 Notiamo che la correlazione tra le variabili GPA, Semester_GPA e CGPA è molto vicina ad 1. Considerando il loro significato, esse descrivono in modo molto simile il rendimento accademico degli studenti: includerle tutte e tre nelle analisi risulterebbe ridondante.
 
-Abbiamo inoltre effettuato una selezione backward delle variabili al fine di mantenere nel modello le variabili più significative per prevedere la variabile risposta. Il modello finale è composto da Family_Income, Internet_Access, Attendance_Rate, Assignment_Delay_Days, Travel_Time_Minutes, Part_Time_Job, Stress_Index e GPA.
-
-Questa procedura ci ha permesso, oltre ad ottenere un modello parsimonioso, di escludere le variabili collineari, mantenendo GPA ed escludendo Semester GPA e CGPA.
-
-## Preparation
-
-Per valutare il miglior metodo di imputazione e il modello ottimale per la classificazione, abbiamo diviso il nostro dataset in training (80%) e test set(20%). Abbiamo successivamente diviso ulteriormente il training set in train ridotto (80%) e validation (20%); su quest'ultimo abbiamo calcolato le metriche di valutazione accuracy e f1 score.
-
 ```{r, include=FALSE}
 mfull <- glm(Dropout ~ . , data=data, family="binomial")
 mnull <- glm(Dropout ~ 1 , data=data, family="binomial")
@@ -148,13 +132,28 @@ step(mfull, scope = list(lower = mnull, upper = mfull), direction = "both")
 
 data <- data[, (names(data) %in% c("Family_Income", "Internet_Access",
                                    "Attendance_Rate","Assignment_Delay_Days",
-
                                    "Travel_Time_Minutes","Part_Time_Job",
                                    "Stress_Index","GPA","Dropout"))]
 
 data_numeric <- data_numeric[, names(data_numeric) %in% c("Family_Income", "Attendance_Rate",
                                                           "Assignment_Delay_Days", "Travel_Time_Minutes",
                                                           "Stress_Index","GPA")]
+
+```
+
+Abbiamo inoltre effettuato una selezione backward delle variabili al fine di mantenere nel modello le variabili più significative per prevedere la variabile risposta. Il modello finale è composto da Family_Income, Internet_Access, Attendance_Rate, Assignment_Delay_Days, Travel_Time_Minutes, Part_Time_Job, Stress_Index e GPA.
+
+Questa procedura ci ha permesso, oltre ad ottenere un modello parsimonioso, di escludere le variabili collineari, mantenendo GPA ed escludendo Semester GPA e CGPA. 
+
+## Preparation
+
+Per valutare il miglior metodo di imputazione e il modello ottimale per la classificazione, abbiamo diviso il nostro dataset in training (80%) e test set (20%). Abbiamo successivamente diviso ulteriormente il training set in train ridotto (80%) e validation (20%); su quest'ultimo abbiamo calcolato le metriche di valutazione accuracy e f1 score.
+
+```{r, include=FALSE}
+set.seed(1)
+labels = sample(1:nrow(data), 0.8*nrow(data))
+train = data[labels,]
+test = data[-labels,]
 
 ```
 
@@ -249,7 +248,7 @@ colnames(ev) <- c("pmm", "mean", "lasso.norm", "cart")
 ev
 ```
 
-Il metodo di imputazione migliore, sia secondo accuracy che F1 score, risulta essere quello tramite media.
+Il metodo di imputazione migliore, sia secondo accuracy che F1 score, risulta essere quello tramite media, nonostante, rispetto agli altri metodi, tenda a ridurre la variabilità ed alterare le relazioni tra le variabili.
 
 ```{r, include=FALSE}
 p <- dim(train_rid)[2]
@@ -303,8 +302,8 @@ Ci aspettiamo che i metodi di resampling aiutino il modello nella classificazion
 
 Al fine di confrontare le performance, sono stati considerati diversi modelli di classificazione:
 
--   LDA : modello lineare che assume distribuzioni gaussiane per le variabili e uguale matrice di covarianza tra le classi;
--   QDA: modello quadratico che assume distribuzioni gaussiane e matrici di covarianza diverse tra le classi, permettendo frontiere di decisionali non lineari;
+-   LDA : modello discriminante lineare che assume distribuzioni gaussiane per le variabili e uguale matrice di covarianza tra le classi;
+-   QDA: modello discriminante quadratico che assume distribuzioni gaussiane e matrici di covarianza diverse tra le classi, permettendo frontiere di decisionali non lineari;
 -   Regressione logistica: modello probabilistico utilizzato per la classificazione binaria;
 -   GLM con soglia ottimizzata: variante della regressione logistica in cui la soglia decisionale viene scelta in modo da ottimizzare l’F1-score sul validation;
 -   Alberi decisionali: modelli non parametrici che suddividono lo spazio delle variabili tramite regole decisionali;
@@ -457,7 +456,7 @@ auc = function(roc_res){
 
 I risultati evidenziano che:
 
--   tutti i modelli hanno AUC \> 0.5
+-   tutti i modelli hanno AUC \> 0.5, indicando una capacità discriminante migliore del caso casuale
 -   le performance sono complessivamente simili
 -   nessun modello domina nettamente sugli altri
 
@@ -491,7 +490,7 @@ auc_res = list(auc_glm, auc_qda,auc_lda,auc_rf)
 legend("bottomright", paste(c("GLM", "QDA", "LDA", "RF"), "- AUC:", auc_res), , col=c("blue","red","green", "black"), lty=1, lwd=3)
 ```
 
-Il modello che garantisce la miglior performance e classificazione della classe minoritaria è la regressione logistica con soglia ottimizzata. Risultano fondamentali per le nostre analisi la gestione dei missing e dei dati sbilanciati, oltre all’ottimizzazione della soglia. Questo è il modello che viene proposto all'Università per prevdere l'abbandono degli studi. In seguito proponiamo un'analisi dettagliata del modello e delle variabili su cui porre una maggior attenzione per permettere a tutti gli studenti di completare i propri studi.
+Il modello che garantisce la miglior performance e classificazione della classe minoritaria è la regressione logistica con soglia ottimizzata. Risultano fondamentali per le nostre analisi la gestione dei missing e dei dati sbilanciati, oltre all’ottimizzazione della soglia. Questo è il modello che viene proposto all'Università per prevedere l'abbandono degli studi. In seguito proponiamo un'analisi dettagliata del modello e delle variabili su cui porre una maggior attenzione per permettere a tutti gli studenti di completare i propri studi.
 
 ## Deployment
 
@@ -500,6 +499,13 @@ summary(glm_fit)
 
 ```
 
-Dall’analisi dei p-value tutti i coefficienti risultano statisticamente significativi: ciò significa che tutte le variabili incluse contribuiscono in modo rilevante alla previsione. I coefficienti a segno negativo indicano che un aumento della variabile in esame riduce la probabilità di dropout. Quelli a segno positivo invece aumentano la probabilità di abbandono. Dai coefficienti del modello risulta che le variabili più rilevanti sono quelle legate alla performance accademica, seguite da fattori comportamentali e socio economici. Un aumento di un solo punto nella media scolastica riduce del 68% la probabilità di abbandono, mentre avere un lavoro part time aumenta la probabilità del 27%.
+Dall’analisi dei p-value tutti i coefficienti risultano statisticamente significativi: ciò significa che tutte le variabili incluse contribuiscono in modo rilevante alla previsione.
+
+In termini probabilistici, i coefficienti del modello logistico possono essere interpretati come variazioni nei log-odds della probabilità di dropout, e quindi evidenziano l’importanza relativa delle variabili nel determinare il rischio di abbandono.
+
+In particolare:
+
+- GPA, Family_Income,Internet_Access, Attendance_Rate hanno coefficiente negativo, indicando che un migliore rendimento accademico, una maggiore disponibilità economica , la possibilità di accesso alle piatteforme digitali e la partecipazione alle attività didattiche ono associati a una riduzione della probabilità di abbandono;
+- i coefficienti positivi di Assignment_Delay_Days, Stress_Index, Travel_Time_Minutes e Part_Time_Job suggeriscono che maggiori difficoltà a rispettare le consegne, livelli elevati di stress, tempi di percorrenza più lunghi e la presenza di un impiego part-time sono fattori associati a un aumento del rischio di dropout.
 
 Dal punto di vista operativo, il modello può essere utilizzato come strumento di supporto alle decisioni, permettendo all’università di identificare precocemente gli studenti a rischio e di attuare interventi mirati, quali attività di tutoraggio, supporto psicologico o sostegno economico. In particolare, dai risultati ottenuti emerge essere opportuno garantire l'accesso digitale agli studenti, potenziare il supporto economico per ridurre il ricorso al lavoro part-time, offrire servizi di supporto psicologico per la gestione dello stress e adottare un sistema di tassazione progressiva basato sul reddito familiare.
