@@ -73,14 +73,19 @@ Dall’analisi preliminare del campo di variazione delle variabili non emergono 
 
 I range di variazione sono coerenti con le variabili in esame.
 
-Data la forte asimmetria della variabile Family_Income, ci è sembrato opportuno normalizzarla.
+Risulta una forte asimmetria della variabile Family_Income.
+
+Le variabili numeriche sono state normalizzate al fine di renderle confrontabili tra loro. 
 
 ```{r, include=FALSE}
-min <- min(data$Family_Income, na.rm = T)
-max <- max(data$Family_Income, na.rm = T)
 
-data$Family_Income[!is.na(data$Family_Income)] <- (data$Family_Income[!is.na(data$Family_Income)]-min)/(max-min)
-summary(data$Family_Income)
+min_max <- function(x) {
+  (x - min(x, na.rm = TRUE)) / (max(x, na.rm = TRUE) - min(x, na.rm = TRUE))
+}
+
+num_cols <- sapply(data, is.numeric)
+data[num_cols] <- lapply(data[num_cols], min_max)
+summary(data)
 ```
 
 L’analisi tramite boxplot è utile al fine di confrontare la distribuzione delle variabili esplicative numeriche condizionatamente alla variabile risposta (Dropout), permettendo di evidenziare eventuali differenze tra i gruppi.
