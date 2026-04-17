@@ -133,8 +133,8 @@ for (m in metodi) {
 metriche_cv
 
 library(caret)
-folds <- createFolds(train_rid$Dropout, k = 5, list = FALSE)
-cv = function(train_rid, m, folds){
+cv = function(train_rid, m, k){
+  folds <- createFolds(train_rid$Dropout, k = k, list = FALSE)
   res <- list(
     LDA     = matrix(NA, nrow=k, ncol=5),
     QDA     = matrix(NA, nrow=k, ncol=5),
@@ -177,6 +177,8 @@ cv = function(train_rid, m, folds){
     dati_tst <- val_fold
     y_test <- val_fold$Dropout
     
+    
+    
     mod_lda = lda(Dropout ~ ., data = dati_trn) 
     lda_tst_pred = predict(mod_lda, dati_tst)$class
     res$LDA[f, ] <- unlist(metrics(make_cm(y_test, lda_tst_pred)))
@@ -207,7 +209,6 @@ cv = function(train_rid, m, folds){
     res$GLM_OPT[f, ] <- unlist(metrics(make_cm(y_test, glm_pred_opt)))
     
     # ALBERO ------------------------------------------------------------------
-    dati_trn$Dropout <- as.factor(dati_trn$Dropout)
     tree_dati <- tree(Dropout ~ . , data=dati_trn)
     tree.pred <- predict(tree_dati , dati_tst , type = "class")
     res$TREE[f, ] <- unlist(metrics(make_cm(y_test, tree.pred)))
@@ -229,6 +230,6 @@ cv = function(train_rid, m, folds){
   print(round(final, 4))
 }
 
-cv(train_rid, "dati normali", folds)
-cv(train_rid, "undersampling", folds)
-cv(train_rid, "oversampling", folds)
+cv(train_rid, "dati normali", 5)
+cv(train_rid, "undersampling", 5)
+cv(train_rid, "oversampling", 5)
