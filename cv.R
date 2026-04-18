@@ -190,10 +190,13 @@ cv = function(train_rid, m, k){
     res$GLM[f, ] <- unlist(metrics(make_cm(y_val, glm_pred)))
     
     # OTTIMIZZAZIONE SOGLIA-------
+    glm.probs_val <- predict(glm_fit, newdata=validation, type="response")
+    y_val <- validation[, 9]
     soglia <- seq(0.1, 0.9, by = 0.01)
     f1_scores <- numeric(length(soglia))
     for (i in seq_along(soglia)) {
       pred_val <- ifelse(glm.probs > soglia[i], 1, 0)
+      pred_val <- ifelse(glm.probs_val > soglia[i], 1, 0)
       cm_val <- make_cm(y_val, pred_val)
       f1_scores[i] <- metrics(cm_val)$F1_score
     }
