@@ -14,7 +14,7 @@ Il presente progetto ha l’obiettivo di sviluppare un modello di classificazion
 
 L'analisi è stata condotta tramite il software R, utilizzando il dataset "Student Dropout Prediction Dataset" disponibile su Kaggle, costruito su una simulazione relativa a 10000 studenti. I dati, infatti, riproducono fedelmente le distribuzioni reali degli studenti, mantenendo asimmetrie, valori mancanti in alcune osservazioni e correlazioni tra esse.
 
-L’obiettivo dell'elaborato è quindi individuare il miglior modello in grado di prevedere se lo studente completerà o meno gli studi, e i principali fattori che determinano la scelta.
+L’obiettivo dell'elaborato è quindi individuare il miglior modello in grado di prevedere se lo studente completerà o meno gli studi e i principali fattori che determinano la scelta.
 
 ```{r include=FALSE}
 library("visdat")
@@ -45,7 +45,7 @@ Le variabili prese in esame sono:
 -   Study_Hours_per_Day: media delle ore di studio giornaliere
 -   Attendance_Rate: percentuale di presenze
 -   Assignment_Delay_Days: ritardo medio nella consegna di progetti
--   Travel_Time_Minutes: tempo di percorrenza medio per recarsi in Università
+-   Travel_Time_Minutes: tempo di percorrenza medio per recarsi in università
 -   Part_Time_Job: contratto part-time (factor con livelli: Yes / No)
 -   Scholarship: benificiario di una borsa di studio (factor con livelli: Yes / No)
 -   Stress_Index: livello di stress autodichiarato (1–10)
@@ -53,7 +53,7 @@ Le variabili prese in esame sono:
 -   Semester: anno corrente (factor con livelli: Year 1-4)
 -   Department: dipartimento di appartenenza (factor con livelli: Science, Arts, Business, CS, Engineering)
 -   Parental_Education: livello di educazione più elevato dei genitori
--   Dropout: variabile target, (0 = retained, 1 = dropped out)
+-   Dropout: variabile target, abbandono del corso (factor con livelli: 0 = retained, 1 = dropped out)
 
 La variabile identificativa ID è stata rimossa in quanto non informativa ai fini predittivi, mentre le variabili categoriche sono state opportunamente convertite in fattori.
 

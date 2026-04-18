@@ -68,7 +68,7 @@ labels = sample(1:nrow(data), 0.8*nrow(data))
 train = data[labels,]
 test = data[-labels,]
 
-# imputazione  ----------------------------------------------------
+# imputazione  ------------------------------------------------------------
 
 # metrica di valutazione
 f1_score <- function(cm) {
