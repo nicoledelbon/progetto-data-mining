@@ -1499,15 +1499,9 @@ costruito su una simulazione relativa a 10000 studenti. I dati, infatti,
 riproducono fedelmente le distribuzioni reali degli studenti, mantenendo
 asimmetrie, valori mancanti in alcune osservazioni e correlazioni tra
 esse.</p>
-<<<<<<< HEAD
-<p>L’obiettivo dell’elaborato è quindi individuare il miglior modello
-che, date alcune caratteristiche dello studente, sia in grado di
-prevedere se esso completerà o meno gli studi.</p>
-=======
 <p>L’obiettivo dell’elaborato è quindi individuare il miglior modello in
-grado di prevedere se lo studente completerà o meno gli studi, e i
+grado di prevedere se lo studente completerà o meno gli studi e i
 principali fattori che determinano la scelta.</p>
->>>>>>> 863b3d2ad0c56240b226f9315c55c778b9487ff5
 <div id="understanding" class="section level2">
 <h2>Understanding</h2>
 <p>Le variabili prese in esame sono:</p>
@@ -1522,7 +1516,7 @@ Yes/No)</li>
 <li>Attendance_Rate: percentuale di presenze</li>
 <li>Assignment_Delay_Days: ritardo medio nella consegna di progetti</li>
 <li>Travel_Time_Minutes: tempo di percorrenza medio per recarsi in
-Università</li>
+università</li>
 <li>Part_Time_Job: contratto part-time (factor con livelli: Yes /
 No)</li>
 <li>Scholarship: benificiario di una borsa di studio (factor con
@@ -1534,7 +1528,8 @@ livelli: Yes / No)</li>
 Science, Arts, Business, CS, Engineering)</li>
 <li>Parental_Education: livello di educazione più elevato dei
 genitori</li>
-<li>Dropout: variabile target, (0 = retained, 1 = dropped out)</li>
+<li>Dropout: variabile target, abbandono del corso (factor con livelli:
+0 = retained, 1 = dropped out)</li>
 </ul>
 <p>La variabile identificativa ID è stata rimossa in quanto non
 informativa ai fini predittivi, mentre le variabili categoriche sono
@@ -1575,13 +1570,8 @@ state opportunamente convertite in fattori.</p>
 emergono valori anomali.</p>
 <p>I range di variazione sono coerenti con le variabili in esame.</p>
 <p>Risulta una forte asimmetria della variabile Family_Income.</p>
-<<<<<<< HEAD
-<p>Le variabili numeriche sono state normalizzate al fine di renderle
-confrontabili tra loro.</p>
-=======
 <p>Le variabili numeriche, essendo in scale molto diverse tra loro, sono
 state normalizzate al fine di renderle confrontabili.</p>
->>>>>>> 863b3d2ad0c56240b226f9315c55c778b9487ff5
 <p>L’analisi tramite boxplot è utile al fine di confrontare la
 distribuzione delle variabili esplicative numeriche condizionatamente
 alla variabile risposta (Dropout), permettendo di evidenziare eventuali
@@ -1716,11 +1706,7 @@ frontiere di decisionali non lineari;</li>
 classificazione binaria;</li>
 <li>GLM con soglia ottimizzata: variante della regressione logistica in
 cui la soglia decisionale viene scelta in modo da ottimizzare l’F1-score
-<<<<<<< HEAD
-sul validation;</li>
-=======
 sul validation set;</li>
->>>>>>> 863b3d2ad0c56240b226f9315c55c778b9487ff5
 <li>Alberi decisionali: modelli non parametrici che suddividono lo
 spazio delle variabili tramite regole decisionali;</li>
 <li>Random Forest: metodo basato su più alberi, che migliorano la
@@ -1763,15 +1749,6 @@ apprende sufficientemente le informazioni necessarie per una
 classificazione adeguata. Le tecniche di under e over sampling, invece,
 migliorano le performance dei modelli. Si è scelto di adottare
 l’oversampling in quanto consente di bilanciare le classi senza perdita
-<<<<<<< HEAD
-di informazioni. La selezione finale del nostro modello è stata
-effettuata in base al punteggio F1-score, in quanto presenta il miglior
-equilibrio tra recall (tasso di veri positivi) e precision (capacità di
-prevedere in modo positivo un’istanza positiva). Il modello con F1-score
-maggiore è la regressione logistica con ottimizzazione della soglia
-decisionale, garantendo un minor errore di classificazione della classe
-minoritaria.</p>
-=======
 di informazioni (come si verifica nell’undersampling). La selezione
 finale del nostro modello è stata effettuata in base al punteggio
 F1-score, in quanto presenta il miglior equilibrio tra recall (tasso di
@@ -1779,7 +1756,6 @@ veri positivi) e precision (capacità di prevedere in modo positivo
 un’istanza positiva). Il modello con F1-score maggiore è la regressione
 logistica con ottimizzazione della soglia decisionale, garantendo un
 minor errore di classificazione della classe minoritaria.</p>
->>>>>>> 863b3d2ad0c56240b226f9315c55c778b9487ff5
 <pre><code>## $`dati normali`
 ##                Error Precision    Recall Specificity Accuracy  F1_score
 ## LDA           0.1865 0.4476615 0.6165644   0.8518519   0.8135 0.5187097
@@ -1906,6 +1882,108 @@ opportuno garantire l’accesso digitale agli studenti, potenziare il
 supporto economico per ridurre il ricorso al lavoro part-time, offrire
 servizi di supporto psicologico per la gestione dello stress e adottare
 un sistema di tassazione progressiva basato sul reddito familiare.</p>
+<pre class="r"><code>library(caret)</code></pre>
+<pre><code>## Warning: il pacchetto &#39;caret&#39; è stato creato con R versione 4.4.3</code></pre>
+<pre><code>## Caricamento del pacchetto richiesto: lattice</code></pre>
+<pre class="r"><code>cv = function(train, m, k){
+  folds &lt;- createFolds(train$Dropout, k = k, list = FALSE)
+  res &lt;- list(
+    LDA     = matrix(NA, nrow=k, ncol=5),
+    QDA     = matrix(NA, nrow=k, ncol=5),
+    GLM     = matrix(NA, nrow=k, ncol=5),
+    TREE    = matrix(NA, nrow=k, ncol=5),
+    RF      = matrix(NA, nrow=k, ncol=5))
+  
+  colnames(res$LDA) &lt;- colnames(res$QDA) &lt;- colnames(res$GLM) &lt;- 
+    colnames(res$TREE) &lt;- colnames(res$RF) &lt;-
+    c(&quot;Precision&quot;,&quot;Recall&quot;,&quot;Specificity&quot;,&quot;Accuracy&quot;,&quot;F1&quot;)
+  
+  make_cm &lt;- function(true, pred){
+    table(factor(true, levels=c(0,1)),
+          factor(pred, levels=c(0,1)))
+  }
+  
+  for (f in 1:k) {
+    train_fold &lt;- train[folds != f, ]
+    val_fold   &lt;- train[folds == f, ]
+    y_val &lt;- val_fold$Dropout
+    
+    data0 &lt;- train_fold[train_fold$Dropout == 0, ]
+    data1 &lt;- train_fold[train_fold$Dropout == 1, ]
+    
+    if(m==&quot;dati normali&quot;){
+      dati_trn &lt;- train_fold
+    }
+    if(m==&quot;undersampling&quot;){
+      set.seed(1)
+      lab &lt;- sample(1:nrow(data0), nrow(data1))
+      dati_trn&lt;- rbind(data0[lab,], data1)
+    }
+    if(m==&quot;oversampling&quot;){
+      set.seed(1)
+      lab &lt;- sample(1:nrow(data1), nrow(data0), replace=T)
+      dati_trn &lt;- rbind(data1[lab,], data0)
+    }
+    
+    
+    mod_lda = lda(Dropout ~ ., data = dati_trn) 
+    lda_tst_pred = predict(mod_lda, val_fold)$class
+    res$LDA[f, ] &lt;- unlist(metrics(make_cm(y_val, lda_tst_pred)))
+    
+    # QDA ---------------------------------------------------------------------
+    mod_qda = qda(Dropout ~ ., data = dati_trn) 
+    qda_tst_pred = predict(mod_qda, val_fold)$class
+    res$QDA[f, ] &lt;- unlist(metrics(make_cm(y_val, qda_tst_pred)))
+    
+    # LOGISTICA ---------------------------------------------------------------
+    glm_fit &lt;- glm(Dropout ~ . , data=dati_trn, family=&quot;binomial&quot;)
+    glm.probs &lt;- predict(glm_fit, newdata= val_fold,type = &quot;response&quot;)
+    glm_pred &lt;- ifelse(glm.probs&gt;0.5,1,0)
+    res$GLM[f, ] &lt;- unlist(metrics(make_cm(y_val, glm_pred)))
+    
+    # ALBERO ------------------------------------------------------------------
+    tree_dati &lt;- tree(Dropout ~ . , data=dati_trn)
+    tree.pred &lt;- predict(tree_dati , val_fold , type = &quot;class&quot;)
+    res$TREE[f, ] &lt;- unlist(metrics(make_cm(y_val, tree.pred)))
+    
+    # RANDOM FOREST -----------------------------------------------------------
+    rf_model &lt;- randomForest(Dropout ~ ., data=dati_trn, ntree=300)
+    rf_pred &lt;- predict(rf_model, val_fold)
+    res$RF[f, ] &lt;- unlist(metrics(make_cm(y_val, rf_pred)))
+  }
+  
+  final &lt;- matrix(0, nrow=5, ncol=5)
+  rownames(final) &lt;- names(res)
+  colnames(final) &lt;- c(&quot;Precision&quot;,&quot;Recall&quot;,&quot;Specificity&quot;,&quot;Accuracy&quot;,&quot;F1&quot;)
+  
+  for(i in 1:5){
+    final[i, ] &lt;- colMeans(res[[i]], na.rm=TRUE)
+  }
+  
+  print(round(final, 4))
+}
+
+cv(train_rid, &quot;dati normali&quot;, 5)</code></pre>
+<pre><code>##      Precision Recall Specificity Accuracy     F1
+## LDA     0.6487 0.4374      0.9249   0.8075 0.5221
+## QDA     0.6258 0.4562      0.9136   0.8034 0.5275
+## GLM     0.6607 0.4225      0.9311   0.8086 0.5144
+## TREE    0.6104 0.3913      0.9208   0.7933 0.4727
+## RF      0.6176 0.3972      0.9218   0.7955 0.4830</code></pre>
+<pre class="r"><code>cv(train_rid, &quot;undersampling&quot;, 5)</code></pre>
+<pre><code>##      Precision Recall Specificity Accuracy     F1
+## LDA     0.4832 0.7618      0.7409   0.7459 0.5911
+## QDA     0.4616 0.7527      0.7213   0.7289 0.5722
+## GLM     0.4837 0.7553      0.7436   0.7464 0.5894
+## TREE    0.4748 0.7061      0.7465   0.7367 0.5644
+## RF      0.4663 0.7436      0.7300   0.7333 0.5730</code></pre>
+<pre class="r"><code>cv(train_rid, &quot;oversampling&quot;, 5)</code></pre>
+<pre><code>##      Precision Recall Specificity Accuracy     F1
+## LDA     0.4812 0.7657      0.7380   0.7447 0.5909
+## QDA     0.4696 0.7618      0.7269   0.7353 0.5810
+## GLM     0.4829 0.7599      0.7417   0.7461 0.5904
+## TREE    0.4343 0.7898      0.6701   0.6989 0.5593
+## RF      0.5708 0.5276      0.8740   0.7906 0.5483</code></pre>
 </div>
 </div>
 

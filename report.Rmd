@@ -508,3 +508,91 @@ In particolare:
 - i coefficienti positivi di Assignment_Delay_Days, Stress_Index, Travel_Time_Minutes e Part_Time_Job suggeriscono che maggiori difficoltà a rispettare le consegne, livelli elevati di stress, tempi di percorrenza più lunghi e la presenza di un impiego part-time sono fattori associati a un aumento del rischio di dropout.
 
 Dal punto di vista operativo, il modello può essere utilizzato come strumento di supporto alle decisioni, permettendo all’università di identificare precocemente gli studenti a rischio e di attuare interventi mirati, quali attività di tutoraggio, supporto psicologico o sostegno economico. In particolare, dai risultati ottenuti emerge essere opportuno garantire l'accesso digitale agli studenti, potenziare il supporto economico per ridurre il ricorso al lavoro part-time, offrire servizi di supporto psicologico per la gestione dello stress e adottare un sistema di tassazione progressiva basato sul reddito familiare.
+
+```{r}
+library(caret)
+cv = function(train, m, k){
+  folds <- createFolds(train$Dropout, k = k, list = FALSE)
+  res <- list(
+    LDA     = matrix(NA, nrow=k, ncol=5),
+    QDA     = matrix(NA, nrow=k, ncol=5),
+    GLM     = matrix(NA, nrow=k, ncol=5),
+    TREE    = matrix(NA, nrow=k, ncol=5),
+    RF      = matrix(NA, nrow=k, ncol=5))
+  
+  colnames(res$LDA) <- colnames(res$QDA) <- colnames(res$GLM) <- 
+    colnames(res$TREE) <- colnames(res$RF) <-
+    c("Precision","Recall","Specificity","Accuracy","F1")
+  
+  make_cm <- function(true, pred){
+    table(factor(true, levels=c(0,1)),
+          factor(pred, levels=c(0,1)))
+  }
+  
+  for (f in 1:k) {
+    train_fold <- train[folds != f, ]
+    val_fold   <- train[folds == f, ]
+    y_val <- val_fold$Dropout
+    
+    data0 <- train_fold[train_fold$Dropout == 0, ]
+    data1 <- train_fold[train_fold$Dropout == 1, ]
+    
+    if(m=="dati normali"){
+      dati_trn <- train_fold
+    }
+    if(m=="undersampling"){
+      set.seed(1)
+      lab <- sample(1:nrow(data0), nrow(data1))
+      dati_trn<- rbind(data0[lab,], data1)
+    }
+    if(m=="oversampling"){
+      set.seed(1)
+      lab <- sample(1:nrow(data1), nrow(data0), replace=T)
+      dati_trn <- rbind(data1[lab,], data0)
+    }
+    
+    
+    mod_lda = lda(Dropout ~ ., data = dati_trn) 
+    lda_tst_pred = predict(mod_lda, val_fold)$class
+    res$LDA[f, ] <- unlist(metrics(make_cm(y_val, lda_tst_pred)))
+    
+    # QDA ---------------------------------------------------------------------
+    mod_qda = qda(Dropout ~ ., data = dati_trn) 
+    qda_tst_pred = predict(mod_qda, val_fold)$class
+    res$QDA[f, ] <- unlist(metrics(make_cm(y_val, qda_tst_pred)))
+    
+    # LOGISTICA ---------------------------------------------------------------
+    glm_fit <- glm(Dropout ~ . , data=dati_trn, family="binomial")
+    glm.probs <- predict(glm_fit, newdata= val_fold,type = "response")
+    glm_pred <- ifelse(glm.probs>0.5,1,0)
+    res$GLM[f, ] <- unlist(metrics(make_cm(y_val, glm_pred)))
+    
+    # ALBERO ------------------------------------------------------------------
+    tree_dati <- tree(Dropout ~ . , data=dati_trn)
+    tree.pred <- predict(tree_dati , val_fold , type = "class")
+    res$TREE[f, ] <- unlist(metrics(make_cm(y_val, tree.pred)))
+    
+    # RANDOM FOREST -----------------------------------------------------------
+    rf_model <- randomForest(Dropout ~ ., data=dati_trn, ntree=300)
+    rf_pred <- predict(rf_model, val_fold)
+    res$RF[f, ] <- unlist(metrics(make_cm(y_val, rf_pred)))
+  }
+  
+  final <- matrix(0, nrow=5, ncol=5)
+  rownames(final) <- names(res)
+  colnames(final) <- c("Precision","Recall","Specificity","Accuracy","F1")
+  
+  for(i in 1:5){
+    final[i, ] <- colMeans(res[[i]], na.rm=TRUE)
+  }
+  
+  print(round(final, 4))
+}
+
+cv(train_rid, "dati normali", 5)
+cv(train_rid, "undersampling", 5)
+cv(train_rid, "oversampling", 5)
+
+
+
+```

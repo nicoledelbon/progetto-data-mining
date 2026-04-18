@@ -390,3 +390,4 @@ cv = function(train_rid, m, k){
 cv(train_rid, "dati normali", 5)
 cv(train_rid, "undersampling", 5)
 cv(train_rid, "oversampling", 5)
+
