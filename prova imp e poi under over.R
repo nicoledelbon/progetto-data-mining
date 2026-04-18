@@ -309,8 +309,9 @@ auc_res = list(auc_glm, auc_qda,auc_lda,auc_rf)
 legend("bottomright", paste(c("GLM", "QDA", "LDA", "RF"), "- AUC:", auc_res), , col=c("blue","red","green", "black"), lty=1, lwd=3)
 
 library(caret)
-cv = function(train_rid, m, k){
-  folds <- createFolds(train_rid$Dropout, k = k, list = FALSE)
+cv = function(train, m, k){
+  set.seed(123) 
+  folds <- createFolds(train$Dropout, k = k, list = FALSE)
   res <- list(
     LDA     = matrix(NA, nrow=k, ncol=5),
     QDA     = matrix(NA, nrow=k, ncol=5),
@@ -328,8 +329,8 @@ cv = function(train_rid, m, k){
   }
   
   for (f in 1:k) {
-    train_fold <- train_rid[folds != f, ]
-    val_fold   <- train_rid[folds == f, ]
+    train_fold <- train[folds != f, ]
+    val_fold   <- train[folds == f, ]
     y_val <- val_fold$Dropout
     
     data0 <- train_fold[train_fold$Dropout == 0, ]
@@ -339,12 +340,10 @@ cv = function(train_rid, m, k){
       dati_trn <- train_fold
     }
     if(m=="undersampling"){
-      set.seed(1)
       lab <- sample(1:nrow(data0), nrow(data1))
       dati_trn<- rbind(data0[lab,], data1)
     }
     if(m=="oversampling"){
-      set.seed(1)
       lab <- sample(1:nrow(data1), nrow(data0), replace=T)
       dati_trn <- rbind(data1[lab,], data0)
     }
