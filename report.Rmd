@@ -488,7 +488,7 @@ auc_res = list(auc_glm, auc_qda,auc_lda,auc_rf)
 legend("bottomright", paste(c("GLM", "QDA", "LDA", "RF"), "- AUC:", auc_res), , col=c("blue","red","green", "black"), lty=1, lwd=3)
 ```
 
-Il modello che garantisce la miglior performance e classificazione della classe minoritaria è la regressione logistica con soglia ottimizzata. Risultano fondamentali per le nostre analisi la gestione dei missing e dei dati sbilanciati, oltre all’ottimizzazione della soglia. 
+Il modello che garantisce la miglior performance e classificazione della classe minoritaria è la regressione logistica con soglia ottimizzata sui dati sottoposti a oversampling. Risultano fondamentali per le nostre analisi la gestione dei missing e dei dati sbilanciati, oltre all’ottimizzazione della soglia. 
 Questo è il modello che viene proposto all'Università per prevedere l'abbandono degli studi. In seguito proponiamo un'analisi dettagliata del modello e delle variabili su cui porre una maggior attenzione per permettere a tutti gli studenti di completare i propri studi.
 
 ## Deployment
@@ -508,6 +508,11 @@ In particolare:
 - i coefficienti positivi di Assignment_Delay_Days, Stress_Index, Travel_Time_Minutes e Part_Time_Job suggeriscono che maggiori difficoltà a rispettare le consegne, livelli elevati di stress, tempi di percorrenza più lunghi e la presenza di un impiego part-time sono fattori associati a un aumento del rischio di dropout.
 
 Dal punto di vista operativo, il modello può essere utilizzato come strumento di supporto alle decisioni, permettendo all’università di identificare precocemente gli studenti a rischio e di attuare interventi mirati, quali attività di tutoraggio, supporto psicologico o sostegno economico. In particolare, dai risultati ottenuti emerge essere opportuno garantire l'accesso digitale agli studenti, potenziare il supporto economico per ridurre il ricorso al lavoro part-time, offrire servizi di supporto psicologico per la gestione dello stress e adottare un sistema di tassazione progressiva basato sul reddito familiare.
+
+## Appendice
+
+Abbiamo inoltre provato a implementare un metodo di k-fold cross-validation per testare la robustezza dei risultati.
+Questa tecnica consiste nel dividere il dataset in k fold, che a turno fungono da test set. La performance viene valutata per ognuna delle partizioni e infine i risultati vengono aggregati tramite media.
 
 ```{r}
 library(caret)
@@ -589,10 +594,12 @@ cv = function(train, m, k){
   print(round(final, 4))
 }
 
+
+```
+```{r, echo = FALSE}
 cv(train_rid, "dati normali", 5)
 cv(train_rid, "undersampling", 5)
 cv(train_rid, "oversampling", 5)
-
-
-
 ```
+
+Ne risulta che il modello GLM applicato ai dati sottoposti a oversampling risulta il migliore, anche con la tecnica CV.
