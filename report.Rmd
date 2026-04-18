@@ -514,7 +514,7 @@ Dal punto di vista operativo, il modello può essere utilizzato come strumento d
 Abbiamo inoltre provato a implementare un metodo di k-fold cross-validation per testare la robustezza dei risultati.
 Questa tecnica consiste nel dividere il dataset in k fold, che a turno fungono da test set. La performance viene valutata per ognuna delle partizioni e infine i risultati vengono aggregati tramite media.
 
-```{r}
+```{r, include=FALSE}
 library(caret)
 cv = function(train, m, k){
   folds <- createFolds(train$Dropout, k = k, list = FALSE)
