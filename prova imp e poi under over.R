@@ -38,15 +38,17 @@ for(i in 1:ncol(data_numeric)){
 }
 par(mfrow=c(1,1))
 
-# grafici per inda
+# grafici per indagare missing values
 md.pattern(data)
 p1 <- vis_miss(data)
 p2 <- gg_miss_var(data)
 grid.arrange(p1, p2, ncol=2)
 
+# analisi delle correlazioni
 cor <- cor(data_numeric, use="complete.obs")
 ggcorrplot(cor, lab=T, hc.order=T)
 
+# selezione delle variabili
 mfull <- glm(Dropout ~ . , data=data, family="binomial")
 mnull <- glm(Dropout ~ 1 , data=data, family="binomial")
 step(mfull, scope = list(lower = mnull, upper = mfull), direction = "both")
@@ -60,12 +62,28 @@ data_numeric <- data_numeric[, names(data_numeric) %in% c("Family_Income", "Atte
                                                           "Assignment_Delay_Days", "Travel_Time_Minutes",
                                                           "Stress_Index","GPA")]
 
+# train-test split
 set.seed(1)
 labels = sample(1:nrow(data), 0.8*nrow(data))
 train = data[labels,]
 test = data[-labels,]
 
 # imputazione  ----------------------------------------------------
+
+# metrica di valutazione
+f1_score <- function(cm) {
+  TP <- cm[2,2]
+  FP <- cm[1,2]
+  FN <- cm[2,1]
+  
+  precision <- TP / (TP + FP)
+  recall <- TP / (TP + FN)
+  
+  f1 <- 2 * precision * recall / (precision + recall)
+  return(f1)
+}
+
+# creazione del validation set
 set.seed(1)
 lab_rid <- sample(1:nrow(train), 0.8*nrow(train))
 train_rid <- train[lab_rid,]
@@ -93,6 +111,7 @@ model4 <- glm.mids(Dropout ~ ., family="binomial", data = my_training4)
 
 models <- list(model1, model2, model3, model4)
 
+# funzione per confrontare accuracy e f1 score
 eval = function(models, val){
   accuracies <- numeric(length(models))
   f1 <- numeric(length(models))
@@ -111,10 +130,10 @@ eval = function(models, val){
   rbind(accuracies, f1)
 }
 
-eval(models,validation)
+ev <- eval(models,validation)
+colnames(ev) <- c("pmm", "mean", "lasso.norm", "cart")
 
-# mean
-
+# imputazione con metodo migliore
 p <- dim(train_rid)[2]
 my_predictorMatrix <- 1 - diag(nrow = p, ncol = p)
 my_predictorMatrix[ ,9] <- 0 
@@ -124,14 +143,44 @@ train_rid <- complete(imp_train,1)
 
 densityplot(imp_train)
 
+# imputazione nel test e nel validation
 validation$Family_Income[is.na(validation$Family_Income)] <- mean(train_rid$Family_Income, na.rm=TRUE)
 validation$Stress_Index[is.na(validation$Stress_Index)] <- mean(train_rid$Stress_Index, na.rm=TRUE)
-
 test$Family_Income[is.na(test$Family_Income)] <- mean(train_rid$Family_Income, na.rm=TRUE)
 test$Stress_Index[is.na(test$Stress_Index)] <- mean(train_rid$Stress_Index, na.rm=TRUE)
 
+table(train_rid$Dropout)  
+
 data0 <- train_rid[train_rid$Dropout==0,]
 data1 <- train_rid[train_rid$Dropout==1,]
+
+# classificazione ---------------------------------------------------------
+
+# metriche di valutazione
+calc_class_err = function(actual, predicted) { 
+  mean(actual != predicted)
+}
+
+metrics <- function(cm) {
+  TP <- cm[2,2]
+  FP <- cm[1,2]
+  FN <- cm[2,1]
+  TN <- cm[1,1]
+  
+  precision <- TP / (TP + FP)
+  recall <- TP / (TP + FN)
+  specificity <- TN / (TN + FP)
+  accuracy <- (TP + TN) / sum(cm)
+  f1 <- 2 * precision * recall / (precision + recall)
+  
+  return(list(
+    Precision = precision,
+    Recall = recall,
+    Specificity = specificity,
+    Accuracy = accuracy,
+    F1_score = f1
+  ))
+}
 
 metriche <- list()
 metodi <- c("dati normali", "undersampling", "oversampling")
@@ -211,10 +260,7 @@ for(m in metodi){
 
 metriche 
 
-plot(tree_dati)
-text(tree_dati)
-
-
+# curva ROC e AUC per l'oversampling
 roc = function(y, pred, soglia = seq(0,1,0.001)){
   y = as.numeric(y)-1
   TPR = numeric(length(soglia))
