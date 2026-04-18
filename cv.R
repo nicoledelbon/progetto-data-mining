@@ -1,137 +1,3 @@
-set.seed(123)
-k <- 5
-folds <- sample(rep(1:k, length.out = nrow(train_rid)))
-
-metodi <- c("dati normali", "undersampling", "oversampling")
-
-metriche_cv <- list()
-
-# =========================================================
-# CROSS VALIDATION
-# =========================================================
-
-for (m in metodi) {
-  
-  # struttura folds: modello x metrica x fold
-  temp <- list(
-    LDA = list(),
-    QDA = list(),
-    GLM = list(),
-    GLM_OPT = list(),
-    TREE = list(),
-    RF = list()
-  )
-  
-  for (model in names(temp)) {
-    temp[[model]] <- list()
-  }
-  
-  for (f in 1:k) {
-    
-    train_fold <- train_rid[folds != f, ]
-    val_fold   <- train_rid[folds == f, ]
-    y_val <- val_fold$Dropout
-    
-    # -------------------------
-    # RESAMPLING
-    # -------------------------
-    
-    if (m == "dati normali") {
-      dati_trn <- train_fold
-    }
-    
-    if (m == "undersampling") {
-      data0 <- train_fold[train_fold$Dropout == 0, ]
-      data1 <- train_fold[train_fold$Dropout == 1, ]
-      set.seed(1)
-      lab <- sample(1:nrow(data0), nrow(data1))
-      dati_trn <- rbind(data0[lab, ], data1)
-    }
-    
-    if (m == "oversampling") {
-      data0 <- train_fold[train_fold$Dropout == 0, ]
-      data1 <- train_fold[train_fold$Dropout == 1, ]
-      set.seed(1)
-      lab <- sample(1:nrow(data1), nrow(data0), replace = TRUE)
-      dati_trn <- rbind(data1[lab, ], data0)
-    }
-    
-    make_cm <- function(a, p) {
-      table(factor(a, levels = c(0,1)),
-            factor(p, levels = c(0,1)))
-    }
-    
-    # =====================================================
-    # MODELLI
-    # =====================================================
-    
-    # LDA
-    mod <- lda(Dropout ~ ., data = dati_trn)
-    pred <- predict(mod, val_fold)$class
-    temp$LDA[[f]] <- metrics(make_cm(y_val, pred))
-    
-    # QDA
-    mod <- qda(Dropout ~ ., data = dati_trn)
-    pred <- predict(mod, val_fold)$class
-    temp$QDA[[f]] <- metrics(make_cm(y_val, pred))
-    
-    # GLM
-    mod <- glm(Dropout ~ ., data = dati_trn, family = "binomial")
-    prob <- predict(mod, val_fold, type = "response")
-    pred <- ifelse(prob > 0.5, 1, 0)
-    temp$GLM[[f]] <- metrics(make_cm(y_val, pred))
-    
-    # GLM OPT
-    soglia <- seq(0.1, 0.9, 0.01)
-    f1 <- sapply(soglia, function(s) {
-      p <- ifelse(prob > s, 1, 0)
-      metrics(make_cm(y_val, p))$F1_score
-    })
-    
-    best <- soglia[which.max(f1)]
-    pred <- ifelse(prob > best, 1, 0)
-    temp$GLM_OPT[[f]] <- metrics(make_cm(y_val, pred))
-    
-    # TREE
-    dati_trn$Dropout <- as.factor(dati_trn$Dropout)
-    mod <- tree(Dropout ~ ., data = dati_trn)
-    pred <- predict(mod, val_fold, type = "class")
-    temp$TREE[[f]] <- metrics(make_cm(y_val, pred))
-    
-    # RF
-    mod <- randomForest(Dropout ~ ., data = dati_trn, ntree = 300)
-    pred <- predict(mod, val_fold)
-    temp$RF[[f]] <- metrics(make_cm(y_val, pred))
-  }
-  
-  # =========================================================
-  # MATRICE FINALE (modelli x metriche)
-  # =========================================================
-  
-  models <- names(temp)
-  metrics_names <- c("Precision","Recall","Specificity","Accuracy","F1")
-  
-  final_matrix <- matrix(0,
-                         nrow = length(models),
-                         ncol = length(metrics_names))
-  
-  rownames(final_matrix) <- models
-  colnames(final_matrix) <- metrics_names
-  
-  for (model in models) {
-    
-    fold_vals <- do.call(rbind, lapply(temp[[model]], function(x) {
-      unlist(x)
-    }))
-    
-    final_matrix[model, ] <- colMeans(fold_vals)
-  }
-  
-  metriche_cv[[m]] <- final_matrix
-}
-
-metriche_cv
-
 library(caret)
 cv = function(train_rid, m, k){
   folds <- createFolds(train_rid$Dropout, k = k, list = FALSE)
@@ -157,6 +23,11 @@ cv = function(train_rid, m, k){
     val_fold   <- train_rid[folds == f, ]
     y_val <- val_fold$Dropout
     
+    set.seed(1)
+    id = sample(1:nrow(train_fold), 0.2*nrow(train_fold))
+    validation = train_fold[id,]
+    train_fold = train_fold[-id,] 
+    
     data0 <- train_fold[train_fold$Dropout == 0, ]
     data1 <- train_fold[train_fold$Dropout == 1, ]
     
@@ -173,6 +44,7 @@ cv = function(train_rid, m, k){
       lab <- sample(1:nrow(data1), nrow(data0), replace=T)
       dati_trn <- rbind(data1[lab,], data0)
     }
+  
     
     mod_lda = lda(Dropout ~ ., data = dati_trn) 
     lda_tst_pred = predict(mod_lda, val_fold)$class
@@ -191,10 +63,12 @@ cv = function(train_rid, m, k){
     
     # OTTIMIZZAZIONE SOGLIA-------
     soglia <- seq(0.1, 0.9, by = 0.01)
+    glm.probs_val <- predict(glm_fit, newdata=validation, type="response")
+    y_vals <- validation[, 9]
     f1_scores <- numeric(length(soglia))
     for (i in seq_along(soglia)) {
-      pred_val <- ifelse(glm.probs > soglia[i], 1, 0)
-      cm_val <- make_cm(y_val, pred_val)
+      pred_val <- ifelse(glm.probs_val > soglia[i], 1, 0)
+      cm_val <- make_cm(y_vals, pred_val)
       f1_scores[i] <- metrics(cm_val)$F1_score
     }
     soglia_opt <- soglia[which.max(f1_scores)]
