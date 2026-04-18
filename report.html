@@ -1486,20 +1486,28 @@ border-radius: 0px;
 <h1>Modelli di classificazione per la performance degli studenti</h1>
 <p>L’Università degli Studi di Milano Centrale è interessata a
 individuare i principali fattori che influenzano l’abbandono dei propri
-corsi universitari.</p>
+corsi universitari, al fine di intervenire con supporti mirati agli
+studenti.</p>
 <p>Il presente progetto ha l’obiettivo di sviluppare un modello di
 classificazione in grado di prevedere, sulla base di caratteristiche
 accademiche, demografiche e comportamentali degli studenti, la
-probabilità di abbandono del percorso di studi.</p>
+probabilità e le principali cause di abbandono del percorso di
+studi.</p>
 <p>L’analisi è stata condotta tramite il software R, utilizzando il
 dataset “Student Dropout Prediction Dataset” disponibile su Kaggle,
 costruito su una simulazione relativa a 10000 studenti. I dati, infatti,
 riproducono fedelmente le distribuzioni reali degli studenti, mantenendo
 asimmetrie, valori mancanti in alcune osservazioni e correlazioni tra
 esse.</p>
+<<<<<<< HEAD
 <p>L’obiettivo dell’elaborato è quindi individuare il miglior modello
 che, date alcune caratteristiche dello studente, sia in grado di
 prevedere se esso completerà o meno gli studi.</p>
+=======
+<p>L’obiettivo dell’elaborato è quindi individuare il miglior modello in
+grado di prevedere se lo studente completerà o meno gli studi, e i
+principali fattori che determinano la scelta.</p>
+>>>>>>> 863b3d2ad0c56240b226f9315c55c778b9487ff5
 <div id="understanding" class="section level2">
 <h2>Understanding</h2>
 <p>Le variabili prese in esame sono:</p>
@@ -1512,8 +1520,9 @@ prevedere se esso completerà o meno gli studi.</p>
 Yes/No)</li>
 <li>Study_Hours_per_Day: media delle ore di studio giornaliere</li>
 <li>Attendance_Rate: percentuale di presenze</li>
-<li>Assignment_Delay_Days: ritardo medio nella consegna</li>
-<li>Travel_Time_Minutes: tempo di percorrenza medio</li>
+<li>Assignment_Delay_Days: ritardo medio nella consegna di progetti</li>
+<li>Travel_Time_Minutes: tempo di percorrenza medio per recarsi in
+Università</li>
 <li>Part_Time_Job: contratto part-time (factor con livelli: Yes /
 No)</li>
 <li>Scholarship: benificiario di una borsa di studio (factor con
@@ -1566,8 +1575,13 @@ state opportunamente convertite in fattori.</p>
 emergono valori anomali.</p>
 <p>I range di variazione sono coerenti con le variabili in esame.</p>
 <p>Risulta una forte asimmetria della variabile Family_Income.</p>
+<<<<<<< HEAD
 <p>Le variabili numeriche sono state normalizzate al fine di renderle
 confrontabili tra loro.</p>
+=======
+<p>Le variabili numeriche, essendo in scale molto diverse tra loro, sono
+state normalizzate al fine di renderle confrontabili.</p>
+>>>>>>> 863b3d2ad0c56240b226f9315c55c778b9487ff5
 <p>L’analisi tramite boxplot è utile al fine di confrontare la
 distribuzione delle variabili esplicative numeriche condizionatamente
 alla variabile risposta (Dropout), permettendo di evidenziare eventuali
@@ -1612,8 +1626,8 @@ in modo molto simile il rendimento accademico degli studenti: includerle
 tutte e tre nelle analisi risulterebbe ridondante.</p>
 <p>Abbiamo inoltre effettuato una selezione backward delle variabili al
 fine di mantenere nel modello le variabili più significative per
-prevedere la variabile risposta. Il modello finale è composto da
-Family_Income, Internet_Access, Attendance_Rate, Assignment_Delay_Days,
+prevedere la risposta. Il modello finale è composto da Family_Income,
+Internet_Access, Attendance_Rate, Assignment_Delay_Days,
 Travel_Time_Minutes, Part_Time_Job, Stress_Index e GPA.</p>
 <p>Questa procedura ci ha permesso, oltre ad ottenere un modello
 parsimonioso, di escludere le variabili collineari, mantenendo GPA ed
@@ -1641,8 +1655,8 @@ i valori mancanti</li>
 <li>Cart: metodo basato su alberi decisionali che imputano valori
 mancanti sfruttando relazioni non lineari tra le variabili</li>
 </ul>
-<p>I diversi metodi sono stati testati sul train ridotto e valutati sul
-validation set.</p>
+<p>I diversi metodi sono stati imputati sul train ridotto e valutati,
+tramite opportuni modelli, sul validation set.</p>
 <pre class="r"><code>f1_score &lt;- function(cm) {
   TP &lt;- cm[2,2]
   FP &lt;- cm[1,2]
@@ -1689,8 +1703,8 @@ minoritaria.</li>
 </ul>
 <p>Ci aspettiamo che i metodi di resampling aiutino il modello nella
 classificazione della classe minoritaria.</p>
-<p>Al fine di confrontare le performance, sono stati considerati diversi
-modelli di classificazione:</p>
+<p>Sono stati considerati diversi modelli di classificazione su ogni
+strategia e sono state confrontate le performance:</p>
 <ul>
 <li>LDA : modello discriminante lineare che assume distribuzioni
 gaussiane per le variabili e uguale matrice di covarianza tra le
@@ -1702,7 +1716,11 @@ frontiere di decisionali non lineari;</li>
 classificazione binaria;</li>
 <li>GLM con soglia ottimizzata: variante della regressione logistica in
 cui la soglia decisionale viene scelta in modo da ottimizzare l’F1-score
+<<<<<<< HEAD
 sul validation;</li>
+=======
+sul validation set;</li>
+>>>>>>> 863b3d2ad0c56240b226f9315c55c778b9487ff5
 <li>Alberi decisionali: modelli non parametrici che suddividono lo
 spazio delle variabili tramite regole decisionali;</li>
 <li>Random Forest: metodo basato su più alberi, che migliorano la
@@ -1745,6 +1763,7 @@ apprende sufficientemente le informazioni necessarie per una
 classificazione adeguata. Le tecniche di under e over sampling, invece,
 migliorano le performance dei modelli. Si è scelto di adottare
 l’oversampling in quanto consente di bilanciare le classi senza perdita
+<<<<<<< HEAD
 di informazioni. La selezione finale del nostro modello è stata
 effettuata in base al punteggio F1-score, in quanto presenta il miglior
 equilibrio tra recall (tasso di veri positivi) e precision (capacità di
@@ -1752,6 +1771,15 @@ prevedere in modo positivo un’istanza positiva). Il modello con F1-score
 maggiore è la regressione logistica con ottimizzazione della soglia
 decisionale, garantendo un minor errore di classificazione della classe
 minoritaria.</p>
+=======
+di informazioni (come si verifica nell’undersampling). La selezione
+finale del nostro modello è stata effettuata in base al punteggio
+F1-score, in quanto presenta il miglior equilibrio tra recall (tasso di
+veri positivi) e precision (capacità di prevedere in modo positivo
+un’istanza positiva). Il modello con F1-score maggiore è la regressione
+logistica con ottimizzazione della soglia decisionale, garantendo un
+minor errore di classificazione della classe minoritaria.</p>
+>>>>>>> 863b3d2ad0c56240b226f9315c55c778b9487ff5
 <pre><code>## $`dati normali`
 ##                Error Precision    Recall Specificity Accuracy  F1_score
 ## LDA           0.1865 0.4476615 0.6165644   0.8518519   0.8135 0.5187097

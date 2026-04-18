@@ -8,13 +8,13 @@ output:
 
 # Modelli di classificazione per la performance degli studenti
 
-L’Università degli Studi di Milano Centrale è interessata a individuare i principali fattori che influenzano l’abbandono dei propri corsi universitari.
+L’Università degli Studi di Milano Centrale è interessata a individuare i principali fattori che influenzano l’abbandono dei propri corsi universitari, al fine di intervenire con supporti mirati agli studenti. 
 
-Il presente progetto ha l’obiettivo di sviluppare un modello di classificazione in grado di prevedere, sulla base di caratteristiche accademiche, demografiche e comportamentali degli studenti, la probabilità di abbandono del percorso di studi.
+Il presente progetto ha l’obiettivo di sviluppare un modello di classificazione in grado di prevedere, sulla base di caratteristiche accademiche, demografiche e comportamentali degli studenti, la probabilità e le principali cause di abbandono del percorso di studi.
 
 L'analisi è stata condotta tramite il software R, utilizzando il dataset "Student Dropout Prediction Dataset" disponibile su Kaggle, costruito su una simulazione relativa a 10000 studenti. I dati, infatti, riproducono fedelmente le distribuzioni reali degli studenti, mantenendo asimmetrie, valori mancanti in alcune osservazioni e correlazioni tra esse.
 
-L’obiettivo dell'elaborato è quindi individuare il miglior modello che, date alcune caratteristiche dello studente, sia in grado di prevedere se esso completerà o meno gli studi.
+L’obiettivo dell'elaborato è quindi individuare il miglior modello in grado di prevedere se lo studente completerà o meno gli studi, e i principali fattori che determinano la scelta.
 
 ```{r include=FALSE}
 library("visdat")
@@ -44,8 +44,8 @@ Le variabili prese in esame sono:
 -   Internet_Access: accesso a internet (factor con livelli: Yes/No)
 -   Study_Hours_per_Day: media delle ore di studio giornaliere
 -   Attendance_Rate: percentuale di presenze
--   Assignment_Delay_Days: ritardo medio nella consegna
--   Travel_Time_Minutes: tempo di percorrenza medio
+-   Assignment_Delay_Days: ritardo medio nella consegna di progetti
+-   Travel_Time_Minutes: tempo di percorrenza medio per recarsi in Università
 -   Part_Time_Job: contratto part-time (factor con livelli: Yes / No)
 -   Scholarship: benificiario di una borsa di studio (factor con livelli: Yes / No)
 -   Stress_Index: livello di stress autodichiarato (1–10)
@@ -75,7 +75,7 @@ I range di variazione sono coerenti con le variabili in esame.
 
 Risulta una forte asimmetria della variabile Family_Income.
 
-Le variabili numeriche sono state normalizzate al fine di renderle confrontabili tra loro. 
+Le variabili numeriche, essendo in scale molto diverse tra loro, sono state normalizzate al fine di renderle confrontabili. 
 
 ```{r, include=FALSE}
 
@@ -146,7 +146,7 @@ data_numeric <- data_numeric[, names(data_numeric) %in% c("Family_Income", "Atte
 
 ```
 
-Abbiamo inoltre effettuato una selezione backward delle variabili al fine di mantenere nel modello le variabili più significative per prevedere la variabile risposta. Il modello finale è composto da Family_Income, Internet_Access, Attendance_Rate, Assignment_Delay_Days, Travel_Time_Minutes, Part_Time_Job, Stress_Index e GPA.
+Abbiamo inoltre effettuato una selezione backward delle variabili al fine di mantenere nel modello le variabili più significative per prevedere la risposta. Il modello finale è composto da Family_Income, Internet_Access, Attendance_Rate, Assignment_Delay_Days, Travel_Time_Minutes, Part_Time_Job, Stress_Index e GPA.
 
 Questa procedura ci ha permesso, oltre ad ottenere un modello parsimonioso, di escludere le variabili collineari, mantenendo GPA ed escludendo Semester GPA e CGPA. 
 
@@ -173,7 +173,7 @@ Sono stati considerati diversi metodi, in particolare:
 -   Lasso norm: utilizza relazioni lineari tra le variabili per stimare i valori mancanti
 -   Cart: metodo basato su alberi decisionali che imputano valori mancanti sfruttando relazioni non lineari tra le variabili
 
-I diversi metodi sono stati testati sul train ridotto e valutati sul validation set.
+I diversi metodi sono stati imputati sul train ridotto e valutati, tramite opportuni modelli, sul validation set.
 
 
 ```{r}
@@ -298,12 +298,12 @@ Per affrontare questo problema sono state considerate tre strategie:
 
 Ci aspettiamo che i metodi di resampling aiutino il modello nella classificazione della classe minoritaria.
 
-Al fine di confrontare le performance, sono stati considerati diversi modelli di classificazione:
+Sono stati considerati diversi modelli di classificazione su ogni strategia e sono state confrontate le performance:
 
 -   LDA : modello discriminante lineare che assume distribuzioni gaussiane per le variabili e uguale matrice di covarianza tra le classi;
 -   QDA: modello discriminante quadratico che assume distribuzioni gaussiane e matrici di covarianza diverse tra le classi, permettendo frontiere di decisionali non lineari;
 -   Regressione logistica: modello probabilistico utilizzato per la classificazione binaria;
--   GLM con soglia ottimizzata: variante della regressione logistica in cui la soglia decisionale viene scelta in modo da ottimizzare l’F1-score sul validation;
+-   GLM con soglia ottimizzata: variante della regressione logistica in cui la soglia decisionale viene scelta in modo da ottimizzare l’F1-score sul validation set;
 -   Alberi decisionali: modelli non parametrici che suddividono lo spazio delle variabili tramite regole decisionali;
 -   Random Forest: metodo basato su più alberi, che migliorano la stabilità e riduce la varianza.
 
@@ -419,7 +419,7 @@ for(m in metodi){
 
 ## Evaluation
 
-L’oversampling risulta la tecnica più efficace per la gestione dello sbilanciamento delle classi. Utilizzare i dati senza resampling infatti, nonostante porti valori dell’accuracy molto elevati, presenta una scarsa capacità predittiva sulla classe minoritaria, in quanto il modello non apprende sufficientemente le informazioni necessarie per una classificazione adeguata. Le tecniche di under e over sampling, invece, migliorano le performance dei modelli. Si è scelto di adottare l’oversampling in quanto consente di bilanciare le classi senza perdita di informazioni. La selezione finale del nostro modello è stata effettuata in base al punteggio F1-score, in quanto presenta il miglior equilibrio tra recall (tasso di veri positivi) e precision (capacità di prevedere in modo positivo un'istanza positiva). Il modello con F1-score maggiore è la regressione logistica con ottimizzazione della soglia decisionale, garantendo un minor errore di classificazione della classe minoritaria.
+L’oversampling risulta la tecnica più efficace per la gestione dello sbilanciamento delle classi. Utilizzare i dati senza resampling infatti, nonostante porti valori dell’accuracy molto elevati, presenta una scarsa capacità predittiva sulla classe minoritaria, in quanto il modello non apprende sufficientemente le informazioni necessarie per una classificazione adeguata. Le tecniche di under e over sampling, invece, migliorano le performance dei modelli. Si è scelto di adottare l’oversampling in quanto consente di bilanciare le classi senza perdita di informazioni (come si verifica nell'undersampling). La selezione finale del nostro modello è stata effettuata in base al punteggio F1-score, in quanto presenta il miglior equilibrio tra recall (tasso di veri positivi) e precision (capacità di prevedere in modo positivo un'istanza positiva). Il modello con F1-score maggiore è la regressione logistica con ottimizzazione della soglia decisionale, garantendo un minor errore di classificazione della classe minoritaria.
 
 ```{r, echo=FALSE}
 metriche
@@ -488,7 +488,8 @@ auc_res = list(auc_glm, auc_qda,auc_lda,auc_rf)
 legend("bottomright", paste(c("GLM", "QDA", "LDA", "RF"), "- AUC:", auc_res), , col=c("blue","red","green", "black"), lty=1, lwd=3)
 ```
 
-Il modello che garantisce la miglior performance e classificazione della classe minoritaria è la regressione logistica con soglia ottimizzata. Risultano fondamentali per le nostre analisi la gestione dei missing e dei dati sbilanciati, oltre all’ottimizzazione della soglia. Questo è il modello che viene proposto all'Università per prevedere l'abbandono degli studi. In seguito proponiamo un'analisi dettagliata del modello e delle variabili su cui porre una maggior attenzione per permettere a tutti gli studenti di completare i propri studi.
+Il modello che garantisce la miglior performance e classificazione della classe minoritaria è la regressione logistica con soglia ottimizzata. Risultano fondamentali per le nostre analisi la gestione dei missing e dei dati sbilanciati, oltre all’ottimizzazione della soglia. 
+Questo è il modello che viene proposto all'Università per prevedere l'abbandono degli studi. In seguito proponiamo un'analisi dettagliata del modello e delle variabili su cui porre una maggior attenzione per permettere a tutti gli studenti di completare i propri studi.
 
 ## Deployment
 
