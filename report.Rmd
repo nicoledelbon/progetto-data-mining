@@ -517,6 +517,7 @@ Questa tecnica consiste nel dividere il dataset in k fold, che a turno fungono d
 ```{r, include=FALSE}
 library(caret)
 cv = function(train, m, k){
+  set.seed(123) 
   folds <- createFolds(train$Dropout, k = k, list = FALSE)
   res <- list(
     LDA     = matrix(NA, nrow=k, ncol=5),
@@ -546,12 +547,10 @@ cv = function(train, m, k){
       dati_trn <- train_fold
     }
     if(m=="undersampling"){
-      set.seed(1)
       lab <- sample(1:nrow(data0), nrow(data1))
       dati_trn<- rbind(data0[lab,], data1)
     }
     if(m=="oversampling"){
-      set.seed(1)
       lab <- sample(1:nrow(data1), nrow(data0), replace=T)
       dati_trn <- rbind(data1[lab,], data0)
     }
