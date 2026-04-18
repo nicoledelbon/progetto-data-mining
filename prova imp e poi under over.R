@@ -8,55 +8,21 @@ library(MASS)
 library(ISLR)
 library("tree")
 library(randomForest)
+library(gridExtra)
 student_dropout_dataset_v3 <- read.csv("student_dropout_dataset_v3.csv")
+
+# rimozione ID
 data <- student_dropout_dataset_v3[,-1]
 
+# trasformazione delle variabili in factor
 fattori <- c("Gender","Internet_Access","Semester","Department",
              "Parental_Education","Part_Time_Job","Scholarship","Dropout")
 data[fattori] <- lapply(data[fattori], as.factor)
 summary(data)
 
-f1_score <- function(cm) {
-  TP <- cm[2,2]
-  FP <- cm[1,2]
-  FN <- cm[2,1]
-  
-  precision <- TP / (TP + FP)
-  recall <- TP / (TP + FN)
-  
-  f1 <- 2 * precision * recall / (precision + recall)
-  return(f1)
-}
-
-calc_class_err = function(actual, predicted) { 
-  mean(actual != predicted)
-}
-
-metrics <- function(cm) {
-  TP <- cm[2,2]
-  FP <- cm[1,2]
-  FN <- cm[2,1]
-  TN <- cm[1,1]
-  
-  precision <- TP / (TP + FP)
-  recall <- TP / (TP + FN)
-  specificity <- TN / (TN + FP)
-  accuracy <- (TP + TN) / sum(cm)
-  f1 <- 2 * precision * recall / (precision + recall)
-  
-  return(list(
-    Precision = precision,
-    Recall = recall,
-    Specificity = specificity,
-    Accuracy = accuracy,
-    F1_score = f1
-  ))
-}
-
+# normalizzazione
 min_max <- function(x) {
-  (x - min(x, na.rm = TRUE)) / (max(x, na.rm = TRUE) - min(x, na.rm = TRUE))
-}
-
+  (x - min(x, na.rm = TRUE)) / (max(x, na.rm = TRUE) - min(x, na.rm = TRUE))}
 num_cols <- sapply(data, is.numeric)
 data[num_cols] <- lapply(data[num_cols], min_max)
 summary(data)
@@ -64,7 +30,7 @@ summary(data)
 data_numeric <- data[, c("Age","Family_Income", "Study_Hours_per_Day" ,"Attendance_Rate","Assignment_Delay_Days",
                          "Travel_Time_Minutes" ,"Stress_Index" , "GPA","Semester_GPA" ,"CGPA")]
 
-
+# boxplot
 par(mfrow=c(2,5))
 for(i in 1:ncol(data_numeric)){
   boxplot(data_numeric[,i] ~ data$Dropout, col=c("green", "red"), ylab=colnames(data_numeric)[i],
@@ -72,9 +38,11 @@ for(i in 1:ncol(data_numeric)){
 }
 par(mfrow=c(1,1))
 
-vis_miss(data)
-gg_miss_var(data)
+# grafici per inda
 md.pattern(data)
+p1 <- vis_miss(data)
+p2 <- gg_miss_var(data)
+grid.arrange(p1, p2, ncol=2)
 
 cor <- cor(data_numeric, use="complete.obs")
 ggcorrplot(cor, lab=T, hc.order=T)
@@ -110,6 +78,7 @@ my_predictorMatrix[ ,9] <- 0
 library(mice)
 my_training1 <- mice(train_rid, method = "pmm", predictorMatrix = my_predictorMatrix, 
                      seed = 1234, printFlag = FALSE)
+my_training1$loggedEvents
 my_training2 <- mice(train_rid, method = "mean", predictorMatrix = my_predictorMatrix, 
                      seed = 1234,  printFlag = FALSE)
 my_training3 <- mice(train_rid, method = "lasso.norm", predictorMatrix = my_predictorMatrix, 
