@@ -174,47 +174,42 @@ cv = function(train_rid, m, k){
       dati_trn <- rbind(data1[lab,], data0)
     }
     
-    dati_tst <- val_fold
-    y_test <- val_fold$Dropout
-    
-    
-    
     mod_lda = lda(Dropout ~ ., data = dati_trn) 
-    lda_tst_pred = predict(mod_lda, dati_tst)$class
-    res$LDA[f, ] <- unlist(metrics(make_cm(y_test, lda_tst_pred)))
+    lda_tst_pred = predict(mod_lda, val_fold)$class
+    res$LDA[f, ] <- unlist(metrics(make_cm(y_val, lda_tst_pred)))
     
     # QDA ---------------------------------------------------------------------
     mod_qda = qda(Dropout ~ ., data = dati_trn) 
-    qda_tst_pred = predict(mod_qda, dati_tst)$class
-    res$QDA[f, ] <- unlist(metrics(make_cm(y_test, qda_tst_pred)))
+    qda_tst_pred = predict(mod_qda, val_fold)$class
+    res$QDA[f, ] <- unlist(metrics(make_cm(y_val, qda_tst_pred)))
     
     # LOGISTICA ---------------------------------------------------------------
     glm_fit <- glm(Dropout ~ . , data=dati_trn, family="binomial")
-    glm.probs <- predict(glm_fit, newdata= dati_tst,type = "response")
+    glm.probs <- predict(glm_fit, newdata= val_fold,type = "response")
     glm_pred <- ifelse(glm.probs>0.5,1,0)
-    res$GLM[f, ] <- unlist(metrics(make_cm(y_test, glm_pred)))
+    res$GLM[f, ] <- unlist(metrics(make_cm(y_val, glm_pred)))
     
     # OTTIMIZZAZIONE SOGLIA-------
     soglia <- seq(0.1, 0.9, by = 0.01)
     f1_scores <- numeric(length(soglia))
     for (i in seq_along(soglia)) {
       pred_val <- ifelse(glm.probs > soglia[i], 1, 0)
-      cm_val <- make_cm(y_test, pred_val)
+      cm_val <- make_cm(y_val, pred_val)
       f1_scores[i] <- metrics(cm_val)$F1_score
     }
     soglia_opt <- soglia[which.max(f1_scores)]
     glm_pred_opt <- ifelse(glm.probs > soglia_opt, 1, 0)
-    res$GLM_OPT[f, ] <- unlist(metrics(make_cm(y_test, glm_pred_opt)))
+    res$GLM_OPT[f, ] <- unlist(metrics(make_cm(y_val, glm_pred_opt)))
     
     # ALBERO ------------------------------------------------------------------
     tree_dati <- tree(Dropout ~ . , data=dati_trn)
-    tree.pred <- predict(tree_dati , dati_tst , type = "class")
-    res$TREE[f, ] <- unlist(metrics(make_cm(y_test, tree.pred)))
+    tree.pred <- predict(tree_dati , val_fold , type = "class")
+    res$TREE[f, ] <- unlist(metrics(make_cm(y_val, tree.pred)))
     
     # RANDOM FOREST -----------------------------------------------------------
     rf_model <- randomForest(Dropout ~ ., data=dati_trn, ntree=300)
-    rf_pred <- predict(rf_model, dati_tst)
-    res$RF[f, ] <- unlist(metrics(make_cm(y_test, rf_pred)))
+    rf_pred <- predict(rf_model, val_fold)
+    res$RF[f, ] <- unlist(metrics(make_cm(y_val, rf_pred)))
   }
   
   final <- matrix(0, nrow=6, ncol=5)
