@@ -49,7 +49,9 @@ Le variabili prese in esame sono:
 -   Part_Time_Job: contratto part-time (factor con livelli: Yes / No)
 -   Scholarship: benificiario di una borsa di studio (factor con livelli: Yes / No)
 -   Stress_Index: livello di stress autodichiarato (1–10)
--   GPA, Semester_GPA, CGPA: performance accademica
+-   GPA: performance accademica dell'anno corrente
+-   Semester_GPA: performance accademica calcolata nel semestre corrente
+-   CGPA: performance accademica cumulata
 -   Semester: anno corrente (factor con livelli: Year 1-4)
 -   Department: dipartimento di appartenenza (factor con livelli: Science, Arts, Business, CS, Engineering)
 -   Parental_Education: livello di educazione più elevato dei genitori
@@ -105,8 +107,8 @@ L'analisi esplorativa dei valori mancanti ne ha evidenziato la presenza, valutat
 Dai grafici emerge che solo lo 0.8% dei dati risulta essere mancante.
 
 ```{r echo=FALSE}
-md.pattern(data)
-p1 <- vis_miss(data)
+md.pattern(data, rotate.names=T)
+p1 <- vis_miss(data) + theme(axis.text.x=element_text(angle=-90, vjust = 0.5, hjust=1))
 p2 <- gg_miss_var(data)
 grid.arrange(p1, p2, ncol=2)
 
@@ -126,7 +128,7 @@ cor <- cor(data_numeric, use="complete.obs")
 ggcorrplot(cor, lab=T, hc.order=T)
 ```
 
-Notiamo che la correlazione tra le variabili GPA, Semester_GPA e CGPA è molto vicina ad 1. Considerando il loro significato, esse descrivono in modo molto simile il rendimento accademico degli studenti: includerle tutte e tre nelle analisi risulterebbe ridondante.
+Notiamo che la correlazione tra le variabili GPA, Semester_GPA e CGPA è molto vicina ad 1. Considerando che esse descrivono in modo molto simile il rendimento accademico degli studenti, includerle tutte nelle analisi risulterebbe ridondante.
 
 ```{r, include=FALSE}
 mfull <- glm(Dropout ~ . , data=data, family="binomial")
@@ -168,10 +170,10 @@ Sono stati considerati diversi metodi, in particolare:
 
 -   Mean: i missing vengono sostituiti con la media della variabile, riducendo la variabilità dei dati;
 -   PMM: modello semi-parametrico che imputa valori selezionandoli da osservazioni simili, preservando la distribuzione originale;
--   Lasso norm: utilizza relazioni lineari tra le variabili per stimare i valori mancanti
--   Cart: metodo basato su alberi decisionali che imputano valori mancanti sfruttando relazioni non lineari tra le variabili
+-   Lasso norm: utilizza relazioni lineari tra le variabili per stimare i valori mancanti;
+-   Cart: metodo basato su alberi decisionali che imputano valori mancanti sfruttando relazioni non lineari tra le variabili.
 
-I diversi metodi sono stati imputati sul train ridotto e valutati, tramite opportuni modelli, sul validation set.
+I diversi metodi sono stati applicati al train ridotto e valutati, tramite opportuni modelli, sul validation set.
 
 
 ```{r}
@@ -263,7 +265,7 @@ densityplot(imp_train)
 
 ```
 
-I missing values presenti nel validation e test set sono stati sostituiti con i valori imputati per i missing values delle rispettive variabili nel train ridotto, ovvero il valore atteso delle variabili contenenti missing calcolati sui dati osservati nel train ridotto.
+I missing values presenti nel validation e test set sono stati sostituiti con i valori imputati nel train ridotto, ovvero il valore atteso calcolato sui dati osservati.
 
 ```{r, include=FALSE}
 validation$Family_Income[is.na(validation$Family_Income)] <- mean(train_rid$Family_Income, na.rm=TRUE)
@@ -286,24 +288,25 @@ data1 <- train_rid[train_rid$Dropout==1,]
 
 ```
 
-## Modelling
 
 Per affrontare questo problema sono state considerate tre strategie:
 
--   dati originali
+-   dati originali;
 -   undersampling : riduzione delle osservazioni della classe maggioritaria;
 -   oversampling : duplicazione delle osservazioni della classe minoritaria.
 
 Ci aspettiamo che i metodi di resampling aiutino il modello nella classificazione della classe minoritaria.
 
+## Modelling
+
 Sono stati considerati diversi modelli di classificazione su ogni strategia e sono state confrontate le performance:
 
 -   LDA : modello discriminante lineare che assume distribuzioni gaussiane per le variabili e uguale matrice di covarianza tra le classi;
--   QDA: modello discriminante quadratico che assume distribuzioni gaussiane e matrici di covarianza diverse tra le classi, permettendo frontiere di decisionali non lineari;
+-   QDA: modello discriminante quadratico che assume distribuzioni gaussiane e matrici di covarianza diverse tra le classi, permettendo linee di confine non lineari;
 -   Regressione logistica: modello probabilistico utilizzato per la classificazione binaria;
 -   GLM con soglia ottimizzata: variante della regressione logistica in cui la soglia decisionale viene scelta in modo da ottimizzare l’F1-score sul validation set;
 -   Alberi decisionali: modelli non parametrici che suddividono lo spazio delle variabili tramite regole decisionali;
--   Random Forest: metodo basato su più alberi, che migliorano la stabilità e riduce la varianza.
+-   Random Forest: metodo basato su più alberi decisionali che unisce le previsioni per ridurre l’overfitting, migliorando la stabilità e riducendo la varianza. Ogni albero viene istruito su un sottoinsieme casuale del training con reimmissione (campionamento bootstrap). 
 
 I diversi modelli sono stati valutati tramite le metriche qui riportate.
 
@@ -417,7 +420,7 @@ for(m in metodi){
 
 ## Evaluation
 
-L’oversampling risulta la tecnica più efficace per la gestione dello sbilanciamento delle classi. Utilizzare i dati senza resampling infatti, nonostante porti valori dell’accuracy molto elevati, presenta una scarsa capacità predittiva sulla classe minoritaria, in quanto il modello non apprende sufficientemente le informazioni necessarie per una classificazione adeguata. Le tecniche di under e over sampling, invece, migliorano le performance dei modelli. Si è scelto di adottare l’oversampling in quanto consente di bilanciare le classi senza perdita di informazioni (come si verifica nell'undersampling). La selezione finale del nostro modello è stata effettuata in base al punteggio F1-score, in quanto presenta il miglior equilibrio tra recall (tasso di veri positivi) e precision (capacità di prevedere in modo positivo un'istanza positiva). Il modello con F1-score maggiore è la regressione logistica con ottimizzazione della soglia decisionale, garantendo un minor errore di classificazione della classe minoritaria.
+L’oversampling risulta la tecnica più efficace per la gestione dello sbilanciamento delle classi. Utilizzare i dati senza resampling, infatti, nonostante porti valori dell’accuracy molto elevati, presenta una scarsa capacità predittiva sulla classe minoritaria, in quanto il modello non apprende sufficientemente le informazioni necessarie per una classificazione adeguata. Le tecniche di under e over sampling, invece, migliorano le performance dei modelli. Si è scelto di adottare l’oversampling in quanto consente di bilanciare le classi senza perdita di informazioni (come si verifica nell'undersampling). La selezione finale del nostro modello è stata effettuata in base al punteggio F1-score, in quanto presenta il miglior equilibrio tra recall (tasso di veri positivi) e precision (capacità di prevedere in modo positivo un'istanza positiva). Il modello con F1-score maggiore è la regressione logistica con ottimizzazione della soglia decisionale, che garantisce un minor errore di classificazione della classe minoritaria.
 
 ```{r, echo=FALSE}
 metriche
@@ -456,7 +459,7 @@ I risultati evidenziano che:
 -   le performance sono complessivamente simili
 -   nessun modello domina nettamente sugli altri
 
-Tuttavia, il modello logistico ottimizzato risulta preferibile per la migliore gestione del trade-off tra falsi positivi e falsi negativi.
+Tuttavia, il modello logistico risulta preferibile per la migliore gestione del trade-off tra falsi positivi e falsi negativi.
 
 ```{r message=FALSE, echo=FALSE}
 roc_glm <- roc(y_test, glm.probs)
@@ -485,29 +488,6 @@ auc_res = list(auc_glm, auc_qda,auc_lda,auc_rf)
 
 legend("bottomright", paste(c("GLM", "QDA", "LDA", "RF"), "- AUC:", auc_res), , col=c("blue","red","green", "black"), lty=1, lwd=3)
 ```
-
-Il modello che garantisce la miglior performance e classificazione della classe minoritaria è la regressione logistica con soglia ottimizzata sui dati sottoposti a oversampling. Risultano fondamentali per le nostre analisi la gestione dei missing e dei dati sbilanciati, oltre all’ottimizzazione della soglia. 
-Questo è il modello che viene proposto all'Università per prevedere l'abbandono degli studi. In seguito proponiamo un'analisi dettagliata del modello e delle variabili su cui porre una maggior attenzione per permettere a tutti gli studenti di completare i propri studi.
-
-## Deployment
-
-```{r}
-summary(glm_fit)
-
-```
-
-Dall’analisi dei p-value tutti i coefficienti risultano statisticamente significativi: ciò significa che tutte le variabili incluse contribuiscono in modo rilevante alla previsione.
-
-In termini probabilistici, i coefficienti del modello logistico possono essere interpretati come variazioni nei log-odds della probabilità di dropout, e quindi evidenziano l’importanza relativa delle variabili nel determinare il rischio di abbandono.
-
-In particolare:
-
-- GPA, Family_Income,Internet_Access, Attendance_Rate hanno coefficiente negativo, indicando che un migliore rendimento accademico, una maggiore disponibilità economica , la possibilità di accesso alle piatteforme digitali e la partecipazione alle attività didattiche ono associati a una riduzione della probabilità di abbandono;
-- i coefficienti positivi di Assignment_Delay_Days, Stress_Index, Travel_Time_Minutes e Part_Time_Job suggeriscono che maggiori difficoltà a rispettare le consegne, livelli elevati di stress, tempi di percorrenza più lunghi e la presenza di un impiego part-time sono fattori associati a un aumento del rischio di dropout.
-
-Dal punto di vista operativo, il modello può essere utilizzato come strumento di supporto alle decisioni, permettendo all’università di identificare precocemente gli studenti a rischio e di attuare interventi mirati, quali attività di tutoraggio, supporto psicologico o sostegno economico. In particolare, dai risultati ottenuti emerge essere opportuno garantire l'accesso digitale agli studenti, potenziare il supporto economico per ridurre il ricorso al lavoro part-time, offrire servizi di supporto psicologico per la gestione dello stress e adottare un sistema di tassazione progressiva basato sul reddito familiare.
-
-## Appendice
 
 Abbiamo inoltre provato a implementare un metodo di k-fold cross-validation per testare la robustezza dei risultati.
 Questa tecnica consiste nel dividere il dataset in k fold, che a turno fungono da test set. La performance viene valutata per ognuna delle partizioni e infine i risultati vengono aggregati tramite media.
@@ -593,6 +573,7 @@ cv = function(train, m, k){
 
 
 ```
+
 ```{r, echo = FALSE}
 cv(train_rid, "dati normali", 5)
 cv(train_rid, "undersampling", 5)
@@ -600,3 +581,23 @@ cv(train_rid, "oversampling", 5)
 ```
 
 Ne risulta che il modello GLM applicato ai dati sottoposti a oversampling risulta il migliore, anche con la tecnica CV.
+
+## Deployment
+
+La regressione logistica con soglia ottimizzata sui dati sottoposti a oversampling è il modello che viene proposto all'Università per prevedere l'abbandono degli studi, in quanto garantisce la miglior performance e classificazione della classe minoritaria. In seguito proponiamo un'analisi dettagliata del modello e delle variabili su cui porre una maggior attenzione per permettere a tutti gli studenti di completare i propri studi.
+
+```{r}
+summary(glm_fit)
+
+```
+
+Dall’analisi dei p-value tutti i coefficienti risultano statisticamente significativi: ciò significa che tutte le variabili incluse contribuiscono in modo rilevante alla previsione.
+
+In termini probabilistici, i coefficienti del modello logistico possono essere interpretati come variazioni nei log-odds della probabilità di dropout, quindi evidenziano l’importanza relativa delle variabili nel determinare il rischio di abbandono.
+
+In particolare:
+
+- GPA, Family_Income,Internet_Access, Attendance_Rate hanno coefficiente negativo, indicando che un migliore rendimento accademico, una maggiore disponibilità economica , la possibilità di accesso alle piatteforme digitali e la partecipazione alle attività didattiche sono associati a una riduzione della probabilità di abbandono;
+- i coefficienti positivi di Assignment_Delay_Days, Stress_Index, Travel_Time_Minutes e Part_Time_Job suggeriscono che maggiori difficoltà a rispettare le consegne, livelli elevati di stress, tempi di percorrenza più lunghi e la presenza di un impiego part-time sono fattori associati a un aumento del rischio di dropout.
+
+Dal punto di vista operativo, il modello può essere utilizzato come strumento di supporto alle decisioni, permettendo all’università di identificare precocemente gli studenti a rischio e di attuare interventi mirati, quali attività di tutoraggio, supporto psicologico o sostegno economico. In particolare, dai risultati ottenuti emerge essere opportuno garantire l'accesso digitale agli studenti, potenziare il supporto economico per ridurre il ricorso al lavoro part-time, offrire servizi di supporto psicologico per la gestione dello stress e adottare un sistema di tassazione progressiva basato sul reddito familiare.
