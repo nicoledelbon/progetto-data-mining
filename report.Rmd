@@ -489,6 +489,8 @@ auc_res = list(auc_glm, auc_qda,auc_lda,auc_rf)
 legend("bottomright", paste(c("GLM", "QDA", "LDA", "RF"), "- AUC:", auc_res), , col=c("blue","red","green", "black"), lty=1, lwd=3)
 ```
 
+### Cross-validation
+
 Abbiamo inoltre provato a implementare un metodo di k-fold cross-validation per testare la robustezza dei risultati.
 Questa tecnica consiste nel dividere il dataset in k fold, che a turno fungono da test set. La performance viene valutata per ognuna delle partizioni e infine i risultati vengono aggregati tramite media.
 
