@@ -33,7 +33,7 @@ library(gridExtra)
 student_dropout_dataset_v3 <- read.csv("student_dropout_dataset_v3.csv")
 ```
 
-## Understanding
+## Data understanding
 
 Le variabili prese in esame sono:
 
@@ -102,6 +102,8 @@ par(mfrow=c(1,1))
 
 ```
 
+### Analisi dei missing
+
 L'analisi esplorativa dei valori mancanti ne ha evidenziato la presenza, valutato l’entità e individuato eventuali pattern sistematici e associazioni tra le variabili coinvolte.
 
 Dai grafici emerge che solo lo 0.8% dei dati risulta essere mancante.
@@ -116,6 +118,8 @@ grid.arrange(p1, p2, ncol=2)
 ```
 
 Si nota la presenza di valori mancanti nelle variabili Family_Income, Study_Hours_per_Day e Stress_index in 500 osservazioni. Queste variabili sono associate ad informazioni sensibili e personali, pertanto è possibile che alcuni studenti abbiano omesso volontariamente la risposta. Per questo motivo, risulta necessario un metodo opportuno di gestione dei missing.
+
+### Selezione delle variabili
 
 Infine, è stata analizzata la correlazione tra le variabili numeriche al fine di individuare eventuali relazioni lineari e possibili fenomeni di multicollinearità.
 
@@ -150,7 +154,7 @@ Abbiamo inoltre effettuato una selezione backward delle variabili al fine di man
 
 Questa procedura ci ha permesso, oltre ad ottenere un modello parsimonioso, di escludere le variabili collineari, mantenendo GPA ed escludendo Semester GPA e CGPA. 
 
-## Preparation
+## Data preparation
 
 Per valutare il miglior metodo di imputazione e il modello ottimale per la classificazione, abbiamo diviso il nostro dataset in training (80%) e test set (20%). Abbiamo successivamente diviso ulteriormente il training set in train ridotto (80%) e validation (20%); su quest'ultimo abbiamo calcolato le metriche di valutazione accuracy e f1 score.
 
