@@ -8,7 +8,7 @@ output:
 
 # Modelli di classificazione per la performance degli studenti
 
-L’Università degli Studi di Milano Centrale è interessata a individuare i principali fattori che influenzano l’abbandono dei propri corsi universitari, al fine di intervenire con supporti mirati agli studenti. 
+L’Università degli Studi di Milano Centrale è interessata a individuare i principali fattori che influenzano l’abbandono dei propri corsi universitari, al fine di intervenire con supporti mirati agli studenti.
 
 Il presente progetto ha l’obiettivo di sviluppare un modello di classificazione in grado di prevedere, sulla base di caratteristiche accademiche, demografiche e comportamentali degli studenti, la probabilità e le principali cause di abbandono del percorso di studi.
 
@@ -75,7 +75,7 @@ I range di variazione sono coerenti con le variabili in esame.
 
 Risulta una forte asimmetria della variabile Family_Income.
 
-Le variabili numeriche, essendo in scale molto diverse tra loro, sono state normalizzate al fine di renderle confrontabili. 
+Le variabili numeriche, essendo in scale molto diverse tra loro, sono state normalizzate al fine di renderle confrontabili.
 
 ```{r, include=FALSE}
 
@@ -174,7 +174,6 @@ Sono stati considerati diversi metodi, in particolare:
 -   Cart: metodo basato su alberi decisionali che imputano valori mancanti sfruttando relazioni non lineari tra le variabili.
 
 I diversi metodi sono stati applicati al train ridotto e valutati, tramite opportuni modelli, sul validation set.
-
 
 ```{r}
 f1_score <- function(cm) {
@@ -493,6 +492,7 @@ legend("bottomright", paste(c("GLM", "QDA", "LDA", "RF"), "- AUC:", auc_res), , 
 =======
 Il modello che garantisce la miglior performance e classificazione della classe minoritaria è la regressione logistica con soglia ottimizzata sui dati sottoposti a oversampling. Risultano fondamentali per le nostre analisi la gestione dei missing e dei dati sbilanciati, oltre all’ottimizzazione della soglia. 
 Questo è il modello che viene proposto all'Università per prevedere l'abbandono degli studi. In seguito proponiamo un'analisi dettagliata del modello e delle variabili su cui porre una maggior attenzione per permettere a tutti gli studenti di completare i propri studi.
+Il modello che garantisce la miglior performance e classificazione della classe minoritaria è la regressione logistica con soglia ottimizzata. Risultano fondamentali per le nostre analisi la gestione dei missing e dei dati sbilanciati, oltre all’ottimizzazione della soglia. Questo è il modello che viene proposto all'Università per prevedere l'abbandono degli studi. In seguito proponiamo un'analisi dettagliata del modello e delle variabili su cui porre una maggior attenzione per permettere a tutti gli studenti di completare i propri studi.
 
 ## Deployment
 
