@@ -291,7 +291,6 @@ data1 <- train_rid[train_rid$Dropout==1,]
 
 ```
 
-
 Per affrontare questo problema sono state considerate tre strategie:
 
 -   dati originali;
