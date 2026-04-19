@@ -148,7 +148,7 @@ data_numeric <- data_numeric[, names(data_numeric) %in% c("Family_Income", "Atte
 
 Abbiamo inoltre effettuato una selezione backward delle variabili al fine di mantenere nel modello le variabili più significative per prevedere la risposta. Il modello finale è composto da Family_Income, Internet_Access, Attendance_Rate, Assignment_Delay_Days, Travel_Time_Minutes, Part_Time_Job, Stress_Index e GPA.
 
-Questa procedura ci ha permesso, oltre ad ottenere un modello parsimonioso, di escludere le variabili collineari, mantenendo GPA ed escludendo Semester GPA e CGPA. 
+Questa procedura ci ha permesso, oltre ad ottenere un modello parsimonioso, di escludere le variabili collineari, mantenendo GPA ed escludendo Semester GPA e CGPA.
 
 ## Preparation
 
@@ -489,6 +489,32 @@ auc_res = list(auc_glm, auc_qda,auc_lda,auc_rf)
 legend("bottomright", paste(c("GLM", "QDA", "LDA", "RF"), "- AUC:", auc_res), , col=c("blue","red","green", "black"), lty=1, lwd=3)
 ```
 
+<<<<<<< HEAD
+=======
+Il modello che garantisce la miglior performance e classificazione della classe minoritaria è la regressione logistica con soglia ottimizzata sui dati sottoposti a oversampling. Risultano fondamentali per le nostre analisi la gestione dei missing e dei dati sbilanciati, oltre all’ottimizzazione della soglia. 
+Questo è il modello che viene proposto all'Università per prevedere l'abbandono degli studi. In seguito proponiamo un'analisi dettagliata del modello e delle variabili su cui porre una maggior attenzione per permettere a tutti gli studenti di completare i propri studi.
+
+## Deployment
+
+```{r}
+summary(glm_fit)
+
+```
+
+Dall’analisi dei p-value tutti i coefficienti risultano statisticamente significativi: ciò significa che tutte le variabili incluse contribuiscono in modo rilevante alla previsione.
+
+In termini probabilistici, i coefficienti del modello logistico possono essere interpretati come variazioni nei log-odds della probabilità di dropout, e quindi evidenziano l’importanza relativa delle variabili nel determinare il rischio di abbandono.
+
+In particolare:
+
+-   GPA, Family_Income,Internet_Access, Attendance_Rate hanno coefficiente negativo, indicando che un migliore rendimento accademico, una maggiore disponibilità economica , la possibilità di accesso alle piatteforme digitali e la partecipazione alle attività didattiche ono associati a una riduzione della probabilità di abbandono;
+-   i coefficienti positivi di Assignment_Delay_Days, Stress_Index, Travel_Time_Minutes e Part_Time_Job suggeriscono che maggiori difficoltà a rispettare le consegne, livelli elevati di stress, tempi di percorrenza più lunghi e la presenza di un impiego part-time sono fattori associati a un aumento del rischio di dropout.
+
+Dal punto di vista operativo, il modello può essere utilizzato come strumento di supporto alle decisioni, permettendo all’università di identificare precocemente gli studenti a rischio e di attuare interventi mirati, quali attività di tutoraggio, supporto psicologico o sostegno economico. In particolare, dai risultati ottenuti emerge essere opportuno garantire l'accesso digitale agli studenti, potenziare il supporto economico per ridurre il ricorso al lavoro part-time, offrire servizi di supporto psicologico per la gestione dello stress e adottare un sistema di tassazione progressiva basato sul reddito familiare.
+
+## Appendice
+
+>>>>>>> 6f017b3 (c)
 Abbiamo inoltre provato a implementare un metodo di k-fold cross-validation per testare la robustezza dei risultati.
 Questa tecnica consiste nel dividere il dataset in k fold, che a turno fungono da test set. La performance viene valutata per ognuna delle partizioni e infine i risultati vengono aggregati tramite media.
 
