@@ -496,8 +496,6 @@ legend("bottomright", paste(c("GLM", "QDA", "LDA", "RF"), "- AUC:", auc_res), , 
 Abbiamo inoltre implementato una k-fold cross-validation per testare la robustezza dei risultati.
 Questa tecnica consiste nel dividere il dataset in k fold, che a turno fungono da test set. La performance viene valutata per ognuna delle partizioni e infine i risultati vengono aggregati tramite media.
 
-Abbiamo inoltre provato a implementare un metodo di k-fold cross-validation per testare la robustezza dei risultati. Questa tecnica consiste nel dividere il dataset in k fold, che a turno fungono da test set. La performance viene valutata per ognuna delle partizioni e infine i risultati vengono aggregati tramite media.
-
 
 ```{r, include=FALSE}
 library(caret)
@@ -604,7 +602,7 @@ In termini probabilistici, i coefficienti del modello logistico possono essere i
 
 In particolare:
 
--   GPA, Family_Income,Internet_Access, Attendance_Rate hanno coefficiente negativo, indicando che un migliore rendimento accademico, una maggiore disponibilità economica , la possibilità di accesso alle piatteforme digitali e la partecipazione alle attività didattiche sono associati a una riduzione della probabilità di abbandono;
+-   GPA, Family_Income, Internet_Access, Attendance_Rate hanno coefficiente negativo, indicando che un migliore rendimento accademico, una maggiore disponibilità economica , la possibilità di accesso alle piatteforme digitali e la partecipazione alle attività didattiche sono associati a una riduzione della probabilità di abbandono;
 -   i coefficienti positivi di Assignment_Delay_Days, Stress_Index, Travel_Time_Minutes e Part_Time_Job suggeriscono che maggiori difficoltà a rispettare le consegne, livelli elevati di stress, tempi di percorrenza più lunghi e la presenza di un impiego part-time sono fattori associati a un aumento del rischio di dropout.
 
 Dal punto di vista operativo, il modello può essere utilizzato come strumento di supporto alle decisioni, permettendo all’università di identificare precocemente gli studenti a rischio e di attuare interventi mirati, quali attività di tutoraggio, supporto psicologico o sostegno economico. In particolare, risulta opportuno garantire l'accesso digitale agli studenti, potenziare il supporto economico per ridurre il ricorso al lavoro part-time, offrire servizi di supporto psicologico per la gestione dello stress e adottare un sistema di tassazione progressiva basato sul reddito familiare.
