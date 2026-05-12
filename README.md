@@ -1,3 +1,5 @@
+## Modelli di classificazione per la performance degli studenti
+
 L’Università degli Studi di Milano Centrale è interessata ad individuare i principali fattori che influenzano l’abbandono dei propri corsi universitari, al fine di intervenire con supporti mirati agli studenti.
 
 Il presente progetto ha l’obiettivo di sviluppare un modello di classificazione in grado di prevedere, sulla base di caratteristiche accademiche, demografiche e comportamentali degli studenti, la probabilità e le principali cause di abbandono del percorso di studi.
